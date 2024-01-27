@@ -101,7 +101,6 @@
     font-size: 18px;
     font-family: 'Roboto', sans-serif;
     font-weight: 400;
-    padding-top: 20px;
     padding-left: 50px;
     padding-top: 50px;
 }
@@ -148,6 +147,9 @@
 
 .certificate-info{
     font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    margin-top: 10px;
 }
 
 .jornada{
@@ -314,7 +316,7 @@ footer {
     }
    .sobre{
         flex-wrap: wrap;
-        height: 1600px;
+        height: 2600px;
    }
    .sobre > img{
     width: 100%;
