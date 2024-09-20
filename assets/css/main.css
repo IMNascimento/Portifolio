@@ -309,6 +309,19 @@ footer {
     font-weight: 400;
 }
 
+.title {
+    display: flex;
+    align-items: center; /* Alinha verticalmente no centro */
+    gap: 4px; /* Espaçamento entre o ícone e o texto */
+    margin: 0; /* Remove margem padrão do h1 */
+    font-size: 24px; /* Ajuste o tamanho da fonte conforme necessário */
+}
+
+.icon {
+    display: inline-flex; /* Mantém o ícone dentro do fluxo do h1 */
+    vertical-align: middle; /* Alinha o ícone ao centro */
+}
+
 @media screen and (max-width: 450px) {
 
     .banner{
