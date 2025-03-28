@@ -321,6 +321,28 @@ footer {
     display: inline-flex; /* Mantém o ícone dentro do fluxo do h1 */
     vertical-align: middle; /* Alinha o ícone ao centro */
 }
+footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+  }
+
+  footer a {
+    text-decoration: none;
+  }
+
+  @media (max-width: 768px) {
+    footer {
+      flex-direction: column;
+      text-align: center;
+    }
+    
+    footer p,
+    footer a {
+      margin-bottom: 10px;
+    }
+  }
 
 @media screen and (max-width: 450px) {
 
