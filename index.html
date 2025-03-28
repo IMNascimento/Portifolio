@@ -846,12 +846,15 @@
             </div>
         </div>
         <footer>
-            <p>&copy; 2024 Igor Nascimento. Todos os direitos reservados.</p>
+            <p>&copy; <span id="current-year"></span> Igor Nascimento. Todos os direitos reservados.</p>
             <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener noreferrer">
               <img src="assets/img/logo_sophia.png" alt="Logo SophiaLabs" width="10" height="10">
               <span style="color: azure;">Desenvolvido por SophiaLabs</span>
             </a>
           </footer>
     </div>
+    <script>
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
 </body>
 </html>
