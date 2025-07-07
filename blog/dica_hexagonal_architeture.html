@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checklist Hexagonal Architecture (Ports & Adapters)</title>
+  <link rel="stylesheet" href="./assets/pages.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Botão de Voltar -->
+  <a href="javascript:history.back()" class="btn-voltar" title="Voltar">
+    <svg width="25" height="25" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="9" stroke="#00ffd0" stroke-width="2"/>
+      <polyline points="11.5,6 8,10 11.5,14" fill="none" stroke="#00ffd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+  <header>
+    <span class="main-illustration">
+      <!-- SVG ilustrativo (igual ao padrão) -->
+      <svg viewBox="0 0 120 120" fill="none">
+        <ellipse cx="60" cy="60" rx="58" ry="56" fill="#171a21" stroke="#00ffd0" stroke-width="2"/>
+        <g>
+          <rect x="24" y="40" width="72" height="34" rx="10" fill="#23272f" stroke="#00ffd0" stroke-width="1.5"/>
+          <rect x="33" y="48" width="55" height="8" rx="2.5" fill="#12151a"/>
+          <rect x="33" y="60" width="25" height="6" rx="2" fill="#12151a"/>
+          <rect x="63" y="60" width="25" height="6" rx="2" fill="#12151a"/>
+          <text x="38" y="54" fill="#00ffd0" font-size="5" font-family="monospace">&lt;ports/&gt;</text>
+          <text x="40" y="65" fill="#00ffd0" font-size="5" font-family="monospace">HexArch</text>
+        </g>
+        <ellipse cx="60" cy="100" rx="20" ry="7" fill="none" stroke="#00ffd0" stroke-width="1"/>
+        <path d="M50 100 Q55 95 60 100 Q65 105 70 100" stroke="#00ffd0" stroke-width="1" fill="none"/>
+        <circle cx="94" cy="33" r="10" stroke="#00ffd0" stroke-width="1" fill="#23272f"/>
+        <rect x="92" y="28" width="4" height="10" rx="1" fill="#00ffd0"/>
+        <rect x="89" y="33" width="10" height="4" rx="1" fill="#00ffd0"/>
+      </svg>
+    </span>
+    <h1>Checklist Hexagonal Architecture</h1>
+    <div class="subtitle">
+      <b>Padrão Ports & Adapters para sistemas profissionais.</b><br>
+      <span style="color:var(--accent)">Organize seu core sem dependências externas!</span>
+    </div>
+  </header>
+  <main>
+    <section class="checklist">
+      <!-- PASSO 1 -->
+      <div class="card">
+        <div class="step-num">1</div>
+        <h2>Faça a análise inicial (igual ao Clean)</h2>
+        <ul>
+          <li>Liste os fluxos e funcionalidades principais do sistema.</li>
+          <li>Extraia entidades e modele o domínio.</li>
+          <li>Defina os casos de uso e identifique integrações necessárias.</li>
+        </ul>
+      </div>
+      <!-- PASSO 2 -->
+      <div class="card">
+        <div class="step-num">2</div>
+        <h2>Nomeie as PORTS (Interfaces do Core)</h2>
+        <ul>
+          <li><strong>Ports de entrada (inbound):</strong> Contratos que o core aceita receber (ex: comandos/consultas, APIs, filas).</li>
+          <li><strong>Ports de saída (outbound):</strong> Contratos que o core usa para acessar o mundo externo (ex: repositórios, gateways, notificadores).</li>
+        </ul>
+        <ul style="margin-top: 10px;">
+          <li>
+            <span style="color:#67e8f9;">Inbound Example:</span>
+            <br>
+            <code>user_service.py, trading_api.py...</code>
+          </li>
+          <li>
+            <span style="color:#facc15;">Outbound Example:</span>
+            <br>
+            <code>user_repository.py, price_history_repository.py, binance_gateway.py, email_notifier.py...</code>
+          </li>
+        </ul>
+      </div>
+      <!-- PASSO 3 -->
+      <div class="card">
+        <div class="step-num">3</div>
+        <h2>Estruture o diretório Hexagonal</h2>
+        <ul>
+          <li>Separe o core e as dependências em camadas claras.</li>
+          <li>Implemente adapters de entrada e saída conforme as ports.</li>
+        </ul>
+        <div class="folder-structure">
+src/
+  domain/                    # Entidades e regras de negócio puras
+    user/
+    operation/
+    market_data/
+    ...
+  application/               # Casos de uso, orquestração do core
+    user/
+    operation/
+    market_data/
+    ...
+  ports/
+    inbound/                 # Interfaces de entrada (contratos)
+      user_service.py
+      trading_api.py
+      ...
+    outbound/                # Interfaces de saída (contratos)
+      user_repository.py
+      price_history_repository.py
+      binance_gateway.py
+      email_notifier.py
+      ...
+  adapters/
+    inbound/                 # Implementações de entrada (ex: REST, CLI)
+      fastapi/
+        routers/
+        schemas/
+      cli/
+        commands/
+    outbound/                # Implementações de saída (banco, API, etc)
+      db/
+        user_repository_impl.py
+        price_history_repository_impl.py
+      binance/
+        binance_gateway_impl.py
+      email/
+        email_notifier_impl.py
+  shared/                    # Utilitários, log, exceptions, helpers
+    logging/
+    utils/
+    ...
+        </div>
+      </div>
+      <!-- PASSO 4 -->
+      <div class="card">
+        <div class="step-num">4</div>
+        <h2>Como projetar nomes/camadas sem erro?</h2>
+        <ul>
+          <li><b>Tudo que depende do core</b> = port de saída + adapter de saída</li>
+          <li><b>Tudo que conversa com o core</b> = port de entrada + adapter de entrada</li>
+          <li><b>O core nunca importa de adapters</b>, só de ports!</li>
+          <li>
+            Cada entidade/fluxo/caso de uso identificado vira classe/módulo do core, com port e adapter quando necessário.
+          </li>
+        </ul>
+      </div>
+      <!-- PASSO 5 -->
+      <div class="card">
+        <div class="step-num">5</div>
+        <h2>Exemplo prático: Simular estratégia de grid</h2>
+        <ul>
+          <li><b>domain/operation/entities/grid_simulation.py</b> — Entidade da simulação</li>
+          <li><b>application/operation/simulate_grid_use_case.py</b> — Caso de uso/orquestração</li>
+          <li><b>ports/inbound/grid_simulation_service.py</b> — Interface de entrada (ex: simulate_grid(...))</li>
+          <li><b>ports/outbound/price_history_repository.py</b> — Interface para obter preços externos</li>
+          <li><b>adapters/inbound/fastapi/routers/grid_simulation_router.py</b> — REST que chama a port de entrada</li>
+          <li><b>adapters/outbound/db/price_history_repository_impl.py</b> — Repo banco</li>
+          <li><b>adapters/outbound/binance/binance_gateway_impl.py</b> — Integração Binance</li>
+          <li><b>shared/logging/logger_factory.py</b> — Logger compartilhado</li>
+        </ul>
+      </div>
+      <!-- PASSO 6 -->
+      <div class="card">
+        <div class="step-num">6</div>
+        <h2>Resumo e mentalidade hexagonal</h2>
+        <ul>
+          <li>Liste fluxos e funcionalidades principais</li>
+          <li>Extraia entidades e casos de uso</li>
+          <li>Modele domínio e contratos (ports)</li>
+          <li>Defina adapters por dependência externa</li>
+          <li>Monte a estrutura pensando: <span style="color:#f87171;">"O core é cego, não importa de fora"</span></li>
+          <li>Adapters plugam portas do core no mundo real</li>
+        </ul>
+      </div>
+    </section>
+    <div class="tips">
+      <b>Dicas de Ouro:</b>
+      <ul>
+        <li>Use nomes claros: "port" para contratos, "adapter" para implementações.</li>
+        <li>O core NUNCA depende de adapter/concreto, só de contratos!</li>
+        <li>Para evoluir, crie/adapte ports e adapters sem mexer no core.</li>
+        <li>Desenhe a estrutura antes de codar, evita retrabalho!</li>
+      </ul>
+    </div>
+    <div class="summary-visual">
+      <div>🔎 <strong>Analise entidades e casos de uso</strong></div>
+      <div>🚪 <strong>Defina ports (contratos)</strong></div>
+      <div>🔌 <strong>Implemente adapters</strong></div>
+      <div>🧠 <strong>Core sem dependência externa</strong></div>
+      <div>📁 <strong>Diretórios claros, desacoplados</strong></div>
+      <div>💡 <strong>Facilidade para crescer e testar</strong></div>
+    </div>
+  </main>
+  <footer>
+    Desenvolvido por
+    <a href="https://www.linkedin.com/in/igor-m-nascimento/" target="_blank">Igor Nascimento</a>
+    -
+    <span id="ano-atual"></span>
+    <span class="footer-sep">|</span>
+    <span class="footer-brand">
+      <span class="copyright-symbol">&copy;</span>
+      <a href="https://sophialabs.com.br" target="_blank" class="brand-link">SophiaLabs</a>
+    </span>
+  </footer>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const yearSpan = document.getElementById('ano-atual');
+      if(yearSpan) {
+        yearSpan.textContent = new Date().getFullYear();
+      }
+    });
+  </script>
+</body>
+</html>
