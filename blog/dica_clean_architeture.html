@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checklist Clean Architecture para Líderes Técnicos</title>
+  <link rel="stylesheet" href="./assets/pages.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Botão de Voltar -->
+  <a href="javascript:history.back()" class="btn-voltar" title="Voltar">
+    <svg width="25" height="25" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="9" stroke="#00ffd0" stroke-width="2"/>
+      <polyline points="11.5,6 8,10 11.5,14" fill="none" stroke="#00ffd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+  
+  <header>
+    <span class="main-illustration">
+      <!-- SVG ilustrativo (o mesmo de antes) -->
+      <svg viewBox="0 0 120 120" fill="none">
+        <ellipse cx="60" cy="60" rx="58" ry="56" fill="#171a21" stroke="#00ffd0" stroke-width="2"/>
+        <g>
+          <rect x="24" y="40" width="72" height="34" rx="10" fill="#23272f" stroke="#00ffd0" stroke-width="1.5"/>
+          <rect x="33" y="48" width="55" height="8" rx="2.5" fill="#12151a"/>
+          <rect x="33" y="60" width="25" height="6" rx="2" fill="#12151a"/>
+          <rect x="63" y="60" width="25" height="6" rx="2" fill="#12151a"/>
+          <text x="38" y="54" fill="#00ffd0" font-size="5" font-family="monospace">&lt;code/&gt;</text>
+          <text x="40" y="65" fill="#00ffd0" font-size="5" font-family="monospace">AI+Eng</text>
+        </g>
+        <ellipse cx="60" cy="100" rx="20" ry="7" fill="none" stroke="#00ffd0" stroke-width="1"/>
+        <path d="M50 100 Q55 95 60 100 Q65 105 70 100" stroke="#00ffd0" stroke-width="1" fill="none"/>
+        <circle cx="94" cy="33" r="10" stroke="#00ffd0" stroke-width="1" fill="#23272f"/>
+        <rect x="92" y="28" width="4" height="10" rx="1" fill="#00ffd0"/>
+        <rect x="89" y="33" width="10" height="4" rx="1" fill="#00ffd0"/>
+      </svg>
+    </span>
+    <h1>Checklist Clean Architecture</h1>
+    <div class="subtitle">
+      <b>Passo a Passo Profissional</b> para você projetar sistemas escaláveis, claros e fáceis de evoluir.<br>
+      <span style="color:var(--accent)">Rápido. Visual. Sem refatoração.</span>
+    </div>
+  </header>
+  <main>
+    <section class="checklist">
+      <!-- PASSO 1 -->
+      <div class="card">
+        <div class="step-num">1</div>
+        <h2>Liste os Fluxos Principais/Funcionalidades</h2>
+        <ul>
+          <li>Escreva, rapidamente, as principais funcionalidades do sistema (não se preocupe com telas ou detalhes).</li>
+          <li>
+            <b>Exemplos:</b>
+            <ul>
+              <li>Usuário cadastra operação financeira</li>
+              <li>Sistema executa grid na Binance</li>
+              <li>Sistema simula estratégia com histórico</li>
+              <li>Usuário consulta extrato/saldo</li>
+              <li>Robô executa ordem real</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <!-- PASSO 2 -->
+      <div class="card">
+        <div class="step-num">2</div>
+        <h2>Identifique os Substantivos e Atores</h2>
+        <ul>
+          <li>Para cada fluxo, destaque <strong>substantivos</strong> (potenciais entidades do domínio).</li>
+          <li>Marque também os <strong>atores</strong> envolvidos (usuário, robô, admin, exchange, etc).</li>
+          <li>
+            <b>Exemplo de substantivos:</b>
+            <br>
+            Usuário, Conta, Operação, Ordem, Grid, Estratégia, Mercado, Preço, Histórico, Robô, Exchange, Saldo...
+          </li>
+        </ul>
+      </div>
+      <!-- PASSO 3 -->
+      <div class="card">
+        <div class="step-num">3</div>
+        <h2>Separe os Domínios Principais</h2>
+        <ul>
+          <li>Divida em <b>blocos de assunto próprio</b> (domínios), sem misturar conceitos diferentes.</li>
+          <li>
+            <b>Exemplos de domínios:</b>
+            <ul>
+              <li>user</li>
+              <li>account</li>
+              <li>operation</li>
+              <li>order</li>
+              <li>market_data</li>
+              <li>strategy</li>
+              <li>simulation</li>
+              <li>wallet</li>
+              <!-- etc -->
+            </ul>
+          </li>
+          <li>
+            <span style="color:#f87171"><b>Cuidado:</b> "operation" ≠ "order" ≠ "market_data"</span>
+          </li>
+        </ul>
+      </div>
+      <!-- PASSO 4 -->
+      <div class="card">
+        <div class="step-num">4</div>
+        <h2>Modele as Entidades principais</h2>
+        <ul>
+          <li>Modele apenas as <b>principais entidades</b>, listando nome, campos e sentido no negócio.</li>
+          <li>Não pense em implementação agora!</li>
+          <li>Use nomes claros e autoexplicativos.</li>
+        </ul>
+        <pre>
+class User:
+    id: str
+    name: str
+    email: str
+
+class Operation:
+    id: str
+    user_id: str
+    strategy: str
+    capital: float
+    status: str
+    created_at: datetime
+
+class Order:
+    id: str
+    operation_id: str
+    symbol: str
+    side: str  # buy/sell
+    qty: float
+    price: float
+    executed_at: datetime
+
+class PriceEntry:
+    id: str
+    symbol: str
+    timestamp: datetime
+    open: float
+    close: float
+    high: float
+    low: float
+    volume: float
+        </pre>
+      </div>
+      <!-- PASSO 5 -->
+      <div class="card">
+        <div class="step-num">5</div>
+        <h2>Defina os Casos de Uso ("use cases")</h2>
+        <ul>
+          <li>Liste as <b>ações importantes</b> do sistema. Cada ação principal vira um caso de uso.</li>
+          <li>
+            <b>Exemplos:</b>
+            <ul>
+              <li>SimulateGridStrategyCommand</li>
+              <li>CreateOrderCommand</li>
+              <li>GetAccountBalanceQuery</li>
+              <li>RunTradingBotCommand</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <!-- PASSO 6 -->
+      <div class="card">
+        <div class="step-num">6</div>
+        <h2>Pense nos Limites de Integração</h2>
+        <ul>
+          <li>Marque tudo que depende de API externa, banco de dados, microserviços, etc.</li>
+          <li>
+            <b>Exemplos:</b> Binance API, serviços de broker, storage, etc.
+          </li>
+        </ul>
+      </div>
+      <!-- PASSO 7 -->
+      <div class="card">
+        <div class="step-num">7</div>
+        <h2>Crie a Estrutura de Pastas</h2>
+        <ul>
+          <li>Monte as pastas para cada domínio principal, já pensando em crescimento.</li>
+        </ul>
+        <div class="folder-structure">
+src/
+  domain/
+    user/
+      entities/
+      repositories/
+      strategies/
+    operation/
+      entities/
+      repositories/
+      strategies/
+    market_data/
+      entities/
+      repositories/
+    ...
+  application/
+    user/
+      commands/
+      queries/
+      dtos/
+    operation/
+      commands/
+      queries/
+      dtos/
+    market_data/
+      commands/
+      queries/
+      dtos/
+  infrastructure/
+    user/
+    operation/
+    market_data/
+    ...
+  shared/
+    logging/
+    utils/
+    ...
+  api/
+    routers/
+    schemas/
+    ...
+        </div>
+      </div>
+    </section>
+
+ <div class="tips">
+      <b>Dicas de Ouro:</b>
+      <ul>
+        <li>Não invente nomes: use o vocabulário do negócio!</li>
+        <li>Revise nomes com alguém do negócio. Consulte docs e open-source se precisar.</li>
+        <li>Se um nome começar a "abranger tudo", provavelmente está ERRADO (ex: data, register, info).</li>
+        <li>Evite classes/tabelas com nome genérico: seja específico!</li>
+        <li>Errar um nome agora dói lá na frente. Siga o método e evite retrabalho!</li>
+      </ul>
+    </div>
+    <div class="summary-visual">
+      <div>✅ <strong>Liste funcionalidades principais</strong></div>
+      <div>🔎 <strong>Extraia substantivos e atores</strong></div>
+      <div>🗂️ <strong>Separe domínios de negócio</strong></div>
+      <div>📦 <strong>Modele entidades (nome + campos)</strong></div>
+      <div>🧠 <strong>Liste casos de uso</strong></div>
+      <div>🌐 <strong>Pense nas integrações externas</strong></div>
+      <div>📁 <strong>Monte estrutura já pensando em crescimento</strong></div>
+    </div>
+  </main>
+ <footer>
+  Desenvolvido por
+  <a href="https://www.linkedin.com/in/igor-m-nascimento/" target="_blank">Igor Nascimento</a>
+  -
+  <span id="ano-atual"></span>
+  <span class="footer-sep">|</span>
+  <span class="footer-brand">
+    <span class="copyright-symbol">&copy;</span>
+    <a href="https://sophialabs.com.br" target="_blank" class="brand-link">SophiaLabs</a>
+  </span>
+</footer>
+
+</body>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const yearSpan = document.getElementById('ano-atual');
+    if(yearSpan) {
+      yearSpan.textContent = new Date().getFullYear();
+    }
+  });
+</script>
+</html>

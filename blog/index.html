@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dicas Internas - Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="./assets/style.css" />
+</head>
+<body>
+ <header class="hero">
+    <div class="hero-content">
+        <div class="hero-text">
+        <h1>Blog de Tecnologia, Programação & IA</h1>
+        <p>
+          Dicas práticas, tendências e conteúdos para acelerar seu aprendizado e evoluir como desenvolvedor.<br>
+            Tudo sobre tecnologia, programação e inteligência artificial em um só lugar.
+        </p>
+        <a href="https://imnascimento.github.io/Portifolio/" class="cta cta-vermelho">Ver Portfólio</a>
+        </div>
+    </div>
+    </header>
+  <main>
+    <section class="dicas" id="dicas">
+      <h2 class="section-title">Dicas e Tópicos</h2>
+      <div class="cards">
+        <a href="dica_clean_architeture.html" class="card">
+          <div class="card-icon">
+            <svg width="36" height="36" fill="none" viewBox="0 0 36 36"><rect width="36" height="36" rx="12" fill="#e3eafc"/><path d="M12 18l5 5 7-7" stroke="#1976d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="card-content">
+            <strong>Checklist Clean Code</strong>
+            <span>Principais pontos para garantir código limpo e de fácil manutenção.</span>
+          </div>
+        </a>
+        <a href="dica1.html" class="card">
+          <div class="card-icon">
+            <!-- Ícone em SVG -->
+            <svg width="36" height="36" fill="none" viewBox="0 0 36 36"><rect width="36" height="36" rx="12" fill="#e3eafc"/><path d="M10 18h16M18 10v16" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="card-content">
+            <strong>Estrutura de Projeto Rápido</strong>
+            <span>Organize e inicie seus projetos de forma ágil e escalável.</span>
+          </div>
+        </a>
+        <a href="dica3.html" class="card">
+          <div class="card-icon">
+            <svg width="36" height="36" fill="none" viewBox="0 0 36 36"><rect width="36" height="36" rx="12" fill="#e3eafc"/><path d="M18 10v16M10 18h16" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="card-content">
+            <strong>Ferramentas Essenciais</strong>
+            <span>Veja as ferramentas que aceleram seu desenvolvimento e sua produtividade.</span>
+          </div>
+        </a>
+        <!-- Adicione mais cards conforme desejar -->
+      </div>
+    </section>
+  </main>
+   <footer>
+    Desenvolvido por
+    <a href="https://www.linkedin.com/in/igor-m-nascimento/" target="_blank" class="footer-link">Igor Nascimento</a>
+    -
+    <span id="ano-atual"></span>
+    <span class="footer-sep">|</span>
+    <span class="footer-brand">
+      <span class="copyright-symbol">&copy;</span>
+      <a href="https://sophialabs.com.br" target="_blank" class="brand-link">SophiaLabs</a>
+    </span>
+  </footer>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const yearSpan = document.getElementById('ano-atual');
+      if(yearSpan) {
+        yearSpan.textContent = new Date().getFullYear();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+:root {
+  --primary: #1976d2;
+  --primary-light: #63a4ff;
+  --bg: #f7f9fc;
+  --section: #fff;
+  --card-bg: #fff;
+  --card-shadow: 0 2px 16px rgba(25,118,210,0.07);
+  --text: #222b45;
+  --muted: #657197;
+  --radius: 18px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* HERO COM IMAGEM DE BACKGROUND E TEXTO EM CIMA */
+header.hero {
+  position: relative;
+  min-height: 880px;
+  background: 
+    linear-gradient(110deg, rgba(25, 29, 42, 0.10) 60%, rgba(25,118,210,0.05) 100%),
+    url('./img/bg4.png') right center no-repeat;
+  background-size: cover;       
+  background-repeat: no-repeat;
+  background-position: right center;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.hero-content {
+  max-width: 950px;
+  margin-left: 7vw;
+  z-index: 1;
+  padding: 64px 0 80px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hero-text {
+  color: #fff;
+  background: rgba(16,22,35,0.30); /* aumenta contraste */
+  border-radius: 20px;
+  padding: 36px 38px;
+  box-shadow: 0 2px 16px rgba(25,118,210,0.04);
+  max-width: 520px;
+}
+
+.hero-text h1 {
+  font-size: 2.7rem;
+  font-weight: 700;
+  margin-bottom: .4em;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.22);
+}
+.hero-text p {
+  font-size: 1.22rem;
+  color: #e3eafc;
+  line-height: 1.5;
+  margin-bottom: 1.6em;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+.cta {
+  display: inline-block;
+  background: #fff;
+  color: var(--primary);
+  font-weight: bold;
+  padding: 13px 30px;
+  border-radius: 25px;
+  text-decoration: none;
+  font-size: 1.07rem;
+  box-shadow: var(--card-shadow);
+  transition: background .2s, color .2s;
+}
+.cta:hover {
+  background: #e3eafc;
+  color: #1565c0;
+}
+ 
+.cta-vermelho {
+  background: rgb(221, 46, 87);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 16px rgba(221,46,87,0.09);
+}
+.cta-vermelho:hover {
+  background: #bb244e;
+  color: #fff;
+}
+
+/* RESTANTE DO LAYOUT */
+main {
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 0 32px 32px 32px;
+}
+.section-title {
+  margin-top: 56px;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--primary);
+}
+.cards {
+  margin-top: 34px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(295px, 1fr));
+  gap: 24px;
+}
+.card {
+  display: flex;
+  align-items: flex-start;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  padding: 26px 28px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow .18s, transform .14s;
+  min-height: 110px;
+  border: 1.5px solid #f2f6ff;
+}
+.card:hover {
+  box-shadow: 0 4px 32px rgba(25,118,210,0.12);
+  transform: translateY(-2px) scale(1.02);
+  border-color: #e3eafc;
+}
+.card-icon {
+  margin-right: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.card-content strong {
+  font-size: 1.13rem;
+  color: var(--primary);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+.card-content span {
+  color: var(--muted);
+  font-size: .99rem;
+}
+.footer-link, .brand-link {
+  text-decoration: none !important;  /* nunca sublinhado */
+  color: #1976d2;
+  font-weight: 500;
+  transition: color .2s;
+}
+.footer-link:hover, .brand-link:hover {
+  color: #1565c0;
+  text-decoration: none !important;  /* nunca sublinhado no hover */
+}
+footer {
+  background: #e3eafc;
+  padding: 22px 0;
+  text-align: center;
+  font-size: 1rem;
+  margin-top: 60px;
+  letter-spacing: .01em;
+}
+.footer-sep {
+  color: #b3c5de;
+  margin: 0 9px;
+}
+.footer-brand {
+  font-size: .97rem;
+}
+
+/* RESPONSIVO */
+@media (max-width: 1100px) {
+  .hero-content { max-width: 96vw; }
+  main { max-width: 98vw; }
+}
+@media (max-width: 900px) {
+  header.hero {
+    min-height: 340px;
+    background-position: center;
+  }
+  .hero-content { margin-left: 3vw; padding: 34px 0 40px 0; }
+  .hero-text { padding: 18px 10vw; }
+}
+@media (max-width: 700px) {
+  header.hero {
+    min-height: 220px;
+    background-position: 80% center;
+    background-size: cover;
+  }
+  .hero-content { padding: 20px 0 22px 0; margin-left: 0; }
+  .hero-text { padding: 12px 3vw; }
+  .hero-text h1 { font-size: 1.28rem; }
+  .section-title { margin-top: 40px; font-size: 1.4rem; }
+  main { padding: 0 1vw 16px 1vw; }
+}
+@media (max-width: 480px) {
+  .cards { gap: 10px;}
+  .card { padding: 11px 6px; }
+  .hero-text { padding: 8px 1vw; }
+}
