@@ -31,6 +31,13 @@ header {
   border-bottom: 1px solid var(--border);
   position: relative;
 }
+.svg-center {
+  display: block;
+  margin: 1.5em auto;
+  /*max-width: 600px;     /* deixa eles bem grandes 
+  /*width: 100%;*/
+  height: auto;
+}
 
 .main-illustration {
   width: 120px;
