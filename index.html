@@ -1,10 +1,113 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nascimento</title>
-    <link rel="stylesheet" href="assets/css/main.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Nascimento</title>
+
+  <meta name="description" content="Portfólio de Igor Nascimento. Engenheiro de Software e Inteligência Artificial. Projetos, certificados, artigos e soluções em IA, ML, NLP e engenharia de software. Atuação em SophiaMind e SophiaLabs." />
+  <link rel="canonical" href="https://imnascimento.github.io/Portifolio/" />
+
+  <!-- Indexação -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:title" content="Igor Nascimento | Engenheiro de Software & IA | SophiaMind e SophiaLabs" />
+  <meta property="og:description" content="Portfólio de Igor Nascimento — soluções em IA e engenharia de software. SophiaMind e SophiaLabs." />
+  <meta property="og:url" content="https://imnascimento.github.io/Portifolio/" />
+  <meta property="og:image" content="https://imnascimento.github.io/Portifolio/assets/img/og-cover.jpg" />
+  <meta property="og:site_name" content="Igor Nascimento" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Igor Nascimento | Engenheiro de Software & IA | SophiaMind e SophiaLabs" />
+  <meta name="twitter:description" content="Soluções em IA, ML, NLP e engenharia de software. Projetos e artigos." />
+  <meta name="twitter:image" content="https://imnascimento.github.io/Portifolio/assets/img/og-cover.jpg" />
+
+  <!-- Acessibilidade / Tema -->
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Pré-conexões (se usar fontes/CDNs externas, adicione aqui) -->
+  <!-- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> -->
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="assets/css/main.css" />
+
+  <!-- Hreflang (se haverá versão EN no futuro, troque a URL) -->
+  <link rel="alternate" href="https://imnascimento.github.io/Portifolio/" hreflang="pt-br" />
+  <!-- <link rel="alternate" href="https://www.seu-dominio-aqui.com/en/" hreflang="en" /> -->
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "Igor Nascimento",
+        "url": "https://imnascimento.github.io/Portifolio/",
+        "inLanguage": "pt-BR",
+        "publisher": { "@id": "#org-sophialabs" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://imnascimento.github.io/Portifolio/?s={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Person",
+        "@id": "#igor",
+        "name": "Igor Nascimento",
+        "url": "https://imnascimento.github.io/Portifolio/",
+        "jobTitle": "Engenheiro de Software e Inteligência Artificial",
+        "image": "https://imnascimento.github.io/Portifolio/assets/img/eu.JPG",
+        "worksFor": [
+          { "@id": "#org-sophiamind" },
+          { "@id": "#org-sophialabs" }
+        ],
+        "sameAs": [
+          "https://www.linkedin.com/in/igor-m-nascimento/",
+          "https://github.com/IMNascimento",
+          "https://www.sophialabs.com.br"
+        ],
+        "knowsAbout": [
+          "Inteligência Artificial", "Machine Learning", "Deep Learning", "NLP",
+          "Engenharia de Software", "Python", "Django", "FastAPI", "Java", "TypeScript",
+          "AWS", "Serverless", "OpenSearch", "PostgreSQL"
+        ]
+      },
+      {
+        "@type": "Organization",
+        "@id": "#org-sophiamind",
+        "name": "SophiaMind",
+        "url": "https://www.sophiamind.com.br/",
+        "sameAs": ["https://www.sophiamind.com.br"],
+        "brand": "SophiaMind"
+      },
+      {
+        "@type": "Organization",
+        "@id": "#org-sophialabs",
+        "name": "SophiaLabs",
+        "url": "https://www.sophialabs.com.br",
+        "sameAs": ["https://www.sophialabs.com.br"]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Sobre", "item": "https://imnascimento.github.io/Portifolio/#sobre" },
+          { "@type": "ListItem", "position": 2, "name": "Certificados", "item": "https://imnascimento.github.io/Portifolio/#certificados" },
+          { "@type": "ListItem", "position": 3, "name": "Jornada", "item": "https://imnascimento.github.io/Portifolio/#jornada" },
+          { "@type": "ListItem", "position": 4, "name": "Papers", "item": "https://imnascimento.github.io/Portifolio/#papers" },
+          { "@type": "ListItem", "position": 5, "name": "Open Source", "item": "https://imnascimento.github.io/Portifolio/#open-source" },
+          { "@type": "ListItem", "position": 6, "name": "Contato", "item": "https://imnascimento.github.io/Portifolio/#contato" }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
     <div class="container">
@@ -1022,7 +1125,7 @@ Também trabalho com Docker, Serverless Framework, Terraform e CloudFormation, a
                 possuir sabedoria, mas são poucas as que
                 verdadeiramente dedicam tempo à reflexão
                 profunda."</p><br>
-            <b>- Nascimento, Founder</b>
+            <b>- Nascimento, I. M.</b>
         </div>
                  <!--artigos-->
                  <div class="certificados">
@@ -1038,7 +1141,7 @@ Também trabalho com Docker, Serverless Framework, Terraform e CloudFormation, a
                         <div class="certificate">
                             <h3>Spectro</h3>
                             <br/>
-                            <img src="assets/img/softwares/spectograma_jet.png" alt="projeto Spectro">
+                            <img src="assets/img/softwares/logo_spectro.png" alt="projeto Spectro">
                             <div class="certificate-info">
                                 <p>Lib em TS para geração de espectrograma e análise de vários parâmetros do áudio. Instalada via Npm com o comando npm i @sophialabs/spectro</p>
                                 <br>
@@ -1050,7 +1153,16 @@ Também trabalho com Docker, Serverless Framework, Terraform e CloudFormation, a
                                 <a href="https://github.com/IMNascimento/Spectro" target="_blank" style="text-decoration: none; margin-right: 15px;"><img src="assets/img/icones/git.png" alt="visualizar" width="20px" height="20px"></a>
                             </div>
                         </div>
-                        <!--cada artigo-->
+                         <div class="certificate">
+                            <h3>OraculumAI</h3>
+                            <br/>
+                            <img src="assets/img/softwares/oraculum.png" alt="Projeto Oraculum">
+                            <div class="certificate-info">
+                                <p>É um analisador de código que usa Modelos de Grande Linguagem (LLMs) para avaliar qualidade, apontar problemas e sugerir melhorias práticas.</p>
+                                <br>
+                                <a href="https://github.com/IMNascimento/Oraculum" target="_blank" style="text-decoration: none; margin-right: 15px;"><img src="assets/img/icones/git.png" alt="visualizar" width="20px" height="20px"></a>
+                            </div>
+                        </div>
                         <div class="certificate">
                             <h3>Core Cronos</h3>
                             <br/>
@@ -1061,6 +1173,7 @@ Também trabalho com Docker, Serverless Framework, Terraform e CloudFormation, a
                                 <a href="https://github.com/IMNascimento/CoreCronos" target="_blank" style="text-decoration: none; margin-right: 15px;"><img src="assets/img/icones/git.png" alt="visualizar" width="20px" height="20px"></a>
                             </div>
                         </div>
+                       
                         <!--cada artigo-->
                         <div class="certificate">
                             <h3>Deep Learning LOSO</h3>
@@ -1133,7 +1246,7 @@ Também trabalho com Docker, Serverless Framework, Terraform e CloudFormation, a
         <footer>
             <p>&copy; <span id="current-year"></span> Igor Nascimento. Todos os direitos reservados.</p>
             <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener noreferrer">
-              <img src="assets/img/logo_sophia.png" alt="Logo SophiaLabs" width="10" height="10">
+              <img src="assets/img/logo_sophia.png" alt="Logo SophiaLabs" width="15" height="15" style="vertical-align: middle;">
               <span style="color: azure;">Desenvolvido por SophiaLabs</span>
             </a>
           </footer>
