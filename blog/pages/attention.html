@@ -1,241 +1,137 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Camada de Atenção em Transformers: Teoria, Prática e Código</title>
-  <link rel="stylesheet" href="./../assets/pages.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <!-- MathJax para fórmulas LaTeX -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script>
-    window.MathJax = {
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-      svg: { fontCache: 'global' }
-    };
-  </script>
-  <script id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atenção: o que a fórmula não conta sobre custo | Blog Igor Nascimento</title>
+  <meta name="description" content="Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
 </head>
 <body>
-  <a href="javascript:history.back()" class="btn-voltar" title="Voltar">
-    <svg width="25" height="25" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="9" stroke="#00ffd0" stroke-width="2"/>
-      <polyline points="11.5,6 8,10 11.5,14" fill="none" stroke="#00ffd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </a>
-
-  <header>
-    <span class="main-illustration">
-      <!-- Ícone de olho estilizado (atenção) -->
-      <svg class="svg-center" width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <ellipse cx="36" cy="36" rx="34" ry="32" fill="#f2fcff" stroke="#00bcd4" stroke-width="3"/>
-        <ellipse cx="36" cy="36" rx="14" ry="12" fill="#b2ebf2" stroke="#00bcd4" stroke-width="2"/>
-        <ellipse cx="36" cy="36" rx="6" ry="5" fill="#00bcd4"/>
-      </svg>
-    </span>
-    <h1>Camada de Atenção em Transformers: Teoria, Prática e Código</h1>
-    <div class="subtitle">
-      Entenda na prática como a atenção revolucionou o processamento de linguagem.
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
     </div>
   </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Deep Learning</span>
+      <h1>Atenção: o que a fórmula não conta sobre custo</h1>
+      <p class="standfirst">Todo mundo conhece softmax(QKᵀ/√d)V. Poucos param para olhar o que essa linha faz com a memória, a latência e a conta de nuvem quando o contexto cresce. Uma conversa sobre as decisões que vêm depois de entender a fórmula.</p>
+      <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
 
-  <main>
-    <section>
-      <h2>O que é e por que atenção é tão importante?</h2>
-      <p>
-        A <b>camada de atenção</b> é o coração dos modelos Transformer. Ela permite que, ao processar cada token, o modelo "olhe" para todos os outros tokens da sequência e pese o quanto cada um deles é relevante para gerar a próxima saída.
-      </p>
-      <ul>
-        <li>Capta <b>relações de longo alcance</b> em frases e textos inteiros.</li>
-        <li>Permite <b>processamento paralelo</b>, acelerando treinamento.</li>
-        <li>É a base para os avanços de LLMs como GPT, Llama e Gemini.</li>
-      </ul>
-      <p>
-        Modelos anteriores (RNNs/LSTMs) só enxergavam o passado imediato. A atenção revolucionou o campo ao permitir visão global sobre a sequência.
-      </p>
-    </section>
+    <h2>A fórmula em uma frase</h2>
+    <p>Para cada token da sequência, a atenção calcula o quanto ele deve "olhar" para cada outro token e mistura as informações na proporção desses pesos. Cada token vira três vetores: uma <em>query</em> (o que estou procurando), uma <em>key</em> (o que eu ofereço) e um <em>value</em> (o que eu carrego). O produto entre queries e keys dá os pesos, o softmax normaliza, e o resultado é uma soma ponderada dos values.</p>
+    <div class="math">\[ \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right) V \]</div>
+    <p>Em código, cabe em seis linhas, e vale ver uma vez para o mistério acabar:</p>
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
 
-    <section>
-      <h2>Como a atenção funciona?</h2>
-      <p>
-        Cada palavra/token vira três vetores:
-        <ul>
-          <li><strong>Query (Q):</strong> O que eu quero buscar?</li>
-          <li><strong>Key (K):</strong> O que cada token representa?</li>
-          <li><strong>Value (V):</strong> Qual informação carregar?</li>
-        </ul>
-        Para cada par (Q, K), calcula-se uma "pontuação" de atenção, define-se o peso de cada token, e faz-se uma soma ponderada dos Values. O resultado é um novo vetor contextualizado para cada token.
-      </p>
-      <div style="overflow-x: auto;">
-      <pre style="background:#21262c;color:#fff;padding:1em;border-radius:8px;">
-# Atenção escalada simples em NumPy
-import numpy as np
-
-def softmax(x):
-    e_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
-    return e_x / e_x.sum(axis=-1, keepdims=True)
-
-# Suponha Q, K, V como matrizes (batch_size, seq_len, d_k)
-def attention(Q, K, V):
+<span class="k">def</span> <span class="n">attention</span>(Q, K, V):
     d_k = Q.shape[-1]
-    scores = np.matmul(Q, K.transpose(0,2,1)) / np.sqrt(d_k)
-    weights = softmax(scores)
-    return np.matmul(weights, V)  # (batch_size, seq_len, d_v)
-      </pre>
+    scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d_k)   <span class="c"># (batch, n, n)</span>
+    weights = np.exp(scores - scores.max(-1, keepdims=True))
+    weights /= weights.sum(-1, keepdims=True)          <span class="c"># softmax</span>
+    <span class="k">return</span> weights @ V                                 <span class="c"># (batch, n, d_v)</span></code></pre>
+    <p>Foi isso que substituiu as redes recorrentes: em vez de empurrar um estado oculto token a token, todos os tokens se enxergam de uma vez, em paralelo. O ganho em paralelismo e em dependências de longa distância é o que tornou possível treinar modelos do tamanho dos atuais. Até aqui, é o que todo material conta.</p>
+
+    <h2>O que a fórmula não conta</h2>
+    <p>Olhe de novo para a dimensão de <code>scores</code>: <code>(batch, n, n)</code>. Para uma sequência de <em>n</em> tokens, a atenção calcula e guarda <em>n²</em> pesos, <strong>por cabeça, por camada</strong>. Dobrar o contexto quadruplica esse custo. É a única linha do modelo que cresce assim, e é ela que dita três decisões de engenharia que aparecem depois que o modelo funciona.</p>
+
+    <h3>Decisão 1: contexto longo ou recuperação</h3>
+    <p>Modelos com janelas de centenas de milhares de tokens criam a tentação de "jogar tudo no prompt". Funciona, e custa quadraticamente em computação e linearmente em dinheiro a cada chamada, porque você paga por todos os tokens de entrada toda vez. A alternativa é recuperar só os trechos relevantes com busca vetorial e mandar um contexto curto. Perde-se a garantia de que a informação certa está lá; ganha-se latência, custo e a possibilidade de citar a fonte.</p>
+    <div class="callout">
+      <span class="label">Trade-off</span>
+      <p>Contexto longo é ótimo para documentos únicos que precisam ser lidos inteiros, como um contrato ou um log de incidente. Recuperação é melhor quando o acervo é grande e a pergunta toca uma fração dele. Na dúvida, meço: qual a fração do contexto que o modelo de fato usa na resposta? Se é pequena, estou pagando por tokens que só atrapalham.</p>
+    </div>
+
+    <h3>Decisão 2: memória de inferência e o cache de K e V</h3>
+    <p>Na geração, cada novo token precisa olhar para as keys e values de todos os anteriores. Recalcular isso a cada passo seria absurdo, então os frameworks guardam K e V em cache. Esse cache cresce com o comprimento da conversa e com o número de cabeças e camadas, e é ele, não os pesos, que estoura a memória da GPU em produção com muitos usuários simultâneos. É por isso que variantes como <em>multi-query</em> e <em>grouped-query attention</em> existem: compartilham K e V entre cabeças para encolher o cache, aceitando uma pequena perda de qualidade em troca de servir mais requisições por placa.</p>
+    <p>Quando coloco um modelo aberto para servir, essa é a conta que faço antes de escolher a instância: tamanho dos pesos (fixo) mais cache de KV por usuário vezes usuários simultâneos vezes comprimento médio de contexto. O segundo termo costuma surpreender.</p>
+
+    <h3>Decisão 3: multi-head e o que cada cabeça aprende</h3>
+    <p>Na prática ninguém usa uma atenção só. O modelo roda várias "cabeças" em paralelo, cada uma com suas projeções de Q, K e V, e concatena os resultados. Cabeças diferentes aprendem relações diferentes: uma acompanha concordância sintática, outra correferência, outra posição. Em PyTorch isso é uma linha:</p>
+<pre><code><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn
+
+mha = nn.MultiheadAttention(embed_dim=<span class="n">512</span>, num_heads=<span class="n">8</span>, batch_first=<span class="k">True</span>)
+x = torch.rand(<span class="n">1</span>, <span class="n">128</span>, <span class="n">512</span>)          <span class="c"># (batch, tokens, embedding)</span>
+out, weights = mha(x, x, x)            <span class="c"># self-attention</span>
+weights.shape                          <span class="c"># (1, 128, 128): os n² pesos, já na média das cabeças</span></code></pre>
+    <p>A decisão aqui é menos glamourosa do que parece: mais cabeças não é melhor por si só. Com a dimensão total fixa, mais cabeças significa cada cabeça com menos dimensões. O que importa é o produto, e os valores que funcionam já estão bem mapeados pelos modelos públicos. Onde a escolha de fato pesa é em <strong>interpretabilidade</strong>: olhar os pesos de atenção ajuda a entender por que o modelo errou, mas não é explicação causal. Já vi time concluir que o modelo "olhou para o token certo" e mesmo assim respondeu errado.</p>
+
+    <h2>Onde isso me pegou de verdade</h2>
+    <p>Em previsão de séries financeiras com Transformers, a janela de entrada é uma decisão de modelagem e de custo ao mesmo tempo. Janela maior captura regimes mais longos e custa quadraticamente no treino, que já é o gargalo quando se roda <em>grid search</em> sobre dezenas de combinações. No <a href="https://github.com/IMNascimento/Nahas" target="_blank" rel="noopener">Nahas</a>, parte do trabalho foi justamente escolher onde gastar: janela, número de cabeças, ou mais rodadas de busca de hiperparâmetros. Com orçamento fixo de GPU, cada um desses tira do outro.</p>
+    <div class="callout callout--dark">
+      <span class="label">O que eu faria diferente</span>
+      <p>Comecei fixando a janela "pelo que fazia sentido para o mercado" e deixei a busca de hiperparâmetros otimizar o resto. Hoje a janela entra na busca também, com um limite de custo por experimento, porque foi onde encontrei o maior ganho por hora de GPU.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>Atenção é uma soma ponderada; o segredo está em quem define os pesos. A fórmula cabe em seis linhas.</li>
+      <li>O custo é quadrático no comprimento da sequência, e essa linha dita contexto, memória e dinheiro.</li>
+      <li>Contexto longo e recuperação são escolhas com perdas diferentes. Meça a fração do contexto que o modelo usa.</li>
+      <li>Em produção, o cache de K e V, não os pesos, costuma ser o que estoura a memória.</li>
+      <li>Pesos de atenção ajudam a investigar erros, mas não são explicação causal.</li>
+    </ul>
+    <p>Referências que valem a leitura: o artigo original <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention Is All You Need</a>, o <a href="https://jalammar.github.io/illustrated-transformer/" target="_blank" rel="noopener">Illustrated Transformer</a> de Jay Alammar e a documentação de <a href="https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html" target="_blank" rel="noopener">MultiheadAttention</a> no PyTorch.</p>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>18 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
       </div>
-      <p>
-        <i>O segredo:</i> Tudo pode ser calculado em lote (batch), e a fórmula se aplica para textos, imagens, áudios e mais.
-      </p>
-      <p style="text-align:center">
-        <b>Fórmula matemática:</b><br>
-        \[
-          \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
-        \]
-      </p>
-    </section>
-
-    <section>
-      <h2>Visualizando a Atenção</h2>
-      <svg class="svg-center" xmlns="http://www.w3.org/2000/svg" width="520" height="220" viewBox="0 0 520 220">
-        <rect width="520" height="220" rx="16" fill="#f2fcff"/>
-        <!-- Tokens de entrada -->
-        <g>
-          <rect x="50" y="45" width="90" height="36" rx="8" fill="#fff" stroke="#00bcd4" stroke-width="2"/>
-          <text x="95" y="68" text-anchor="middle" font-family="monospace" font-size="18" fill="#00bcd4">Eu</text>
-          <rect x="160" y="45" width="90" height="36" rx="8" fill="#fff" stroke="#00bcd4" stroke-width="2"/>
-          <text x="205" y="68" text-anchor="middle" font-family="monospace" font-size="18" fill="#00bcd4">gosto</text>
-          <rect x="270" y="45" width="90" height="36" rx="8" fill="#fff" stroke="#00bcd4" stroke-width="2"/>
-          <text x="315" y="68" text-anchor="middle" font-family="monospace" font-size="18" fill="#00bcd4">de</text>
-          <rect x="380" y="45" width="90" height="36" rx="8" fill="#fff" stroke="#00bcd4" stroke-width="2"/>
-          <text x="425" y="68" text-anchor="middle" font-family="monospace" font-size="18" fill="#00bcd4">pizza</text>
-        </g>
-        <!-- Setas de atenção -->
-        <g stroke="#b2ebf2" stroke-width="3" opacity="0.7">
-          <line x1="95" y1="81" x2="95" y2="170"/>
-          <line x1="95" y1="81" x2="205" y2="170"/>
-          <line x1="95" y1="81" x2="315" y2="170"/>
-          <line x1="95" y1="81" x2="425" y2="170"/>
-        </g>
-        <!-- Token de saída -->
-        <rect x="190" y="160" width="140" height="40" rx="10" fill="#fffde7" stroke="#ffb300" stroke-width="2"/>
-        <text x="260" y="185" text-anchor="middle" font-family="monospace" font-size="20" fill="#ffb300">"Eu"</text>
-        <text x="260" y="210" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#555">Token em foco recebe contexto de todos</text>
-      </svg>
-      <p style="text-align:center;font-size:0.95em;color:#aaa">
-        Atenção: cada token considera todos os outros ao gerar sua saída.
-      </p>
-    </section>
-
-    <section>
-      <h2>Exemplo prático em PyTorch</h2>
-      <p>
-        Veja como calcular self-attention com apenas algumas linhas usando PyTorch. Neste exemplo, temos uma sequência simples com 3 tokens e dimensão 4.
-      </p>
-      <div style="overflow-x: auto;">
-      <pre style="background:#21262c;color:#fff;padding:1em;border-radius:8px;">
-import torch
-import torch.nn.functional as F
-
-Q = torch.rand(1, 3, 4)  # (batch, seq_len, d_k)
-K = torch.rand(1, 3, 4)
-V = torch.rand(1, 3, 4)
-d_k = Q.size(-1)
-
-# Scaled dot-product attention
-scores = torch.matmul(Q, K.transpose(-2, -1)) / d_k ** 0.5  # (1, 3, 3)
-weights = F.softmax(scores, dim=-1)
-output = torch.matmul(weights, V)  # (1, 3, 4)
-
-print("Pesos de atenção:", weights)
-print("Saída contextualizada:", output)
-      </pre>
-      </div>
-      <p>
-        Assim, você pode visualizar os pesos de atenção que cada token atribui a todos os outros — e entender, por exemplo, que “pizza” pode depender muito de “gosto” e menos de “eu”.
-      </p>
-    </section>
-
-    <section>
-      <h2>Multi-Head Attention: mais contexto, mais poder</h2>
-      <p>
-        Na prática, os Transformers usam diversas "cabeças" de atenção em paralelo. Cada uma aprende relações diferentes e, depois, seus resultados são combinados. Isso permite capturar <b>diversos padrões simultaneamente</b>.
-      </p>
-      <div style="overflow-x: auto;">
-      <pre style="background:#21262c;color:#fff;padding:1em;border-radius:8px;">
-import torch
-import torch.nn as nn
-
-multi_head = nn.MultiheadAttention(embed_dim=8, num_heads=2, batch_first=True)
-x = torch.rand(1, 5, 8)  # (batch, seq_len, embedding_dim)
-attn_output, attn_weights = multi_head(x, x, x)
-print("Saída com Multi-Head:", attn_output.shape)
-print("Pesos das heads:", attn_weights.shape)
-      </pre>
-      </div>
-      <p>
-        Usando <code>nn.MultiheadAttention</code> você ganha performance e flexibilidade, sem precisar implementar tudo na mão.
-      </p>
-    </section>
-
-    <section>
-      <h2>Onde a atenção é aplicada?</h2>
-      <ul>
-        <li>Tradução automática, resumo de textos, chatbots e LLMs</li>
-        <li>Análise de imagens (<a href="https://arxiv.org/abs/2010.11929" target="_blank">Vision Transformers</a>)</li>
-        <li>Reconhecimento de fala e áudio</li>
-        <li>Até jogos e recomendação!</li>
-      </ul>
-      <p>
-        Hoje, o conceito de atenção já foi além do texto e se tornou onipresente em IA.
-      </p>
-    </section>
-
-    <section>
-      <h2>Resumo e referências</h2>
-      <p>
-        A camada de atenção é uma engrenagem fundamental para IA moderna — e dominar sua teoria, exemplos e prática te coloca na frente. Se quiser se aprofundar:
-      </p>
-      <ul>
-        <li>
-          <a href="https://jalammar.github.io/illustrated-transformer/" target="_blank">
-            The Illustrated Transformer (Jay Alammar)
-          </a>
-        </li>
-        <li>
-          <a href="https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html" target="_blank">
-            Documentação PyTorch MultiheadAttention
-          </a>
-        </li>
-        <li>
-          <a href="https://arxiv.org/abs/1706.03762" target="_blank">
-            Paper original: "Attention is All You Need"
-          </a>
-        </li>
-      </ul>
-      <p>
-        Nos próximos artigos, vamos explorar:
-        <ul>
-          <li>Implementação de Attention em NLP</li>
-          <li>Visualização de heads e interpretabilidade</li>
-          <li>Aplicações práticas em datasets reais</li>
-        </ul>
-        Fique de olho!
-      </p>
-    </section>
-  </main>
-
-  <footer>
-    Desenvolvido por 
-    <a href="https://www.linkedin.com/in/igor-m-nascimento/" target="_blank">Igor Nascimento</a> 
-    – <span id="ano-atual"></span> | &copy; <a href="https://sophialabs.com.br" target="_blank">SophiaLabs</a>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
   </footer>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const yearSpan = document.getElementById('ano-atual');
-      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    });
-  </script>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
 </html>

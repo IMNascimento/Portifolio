@@ -1,269 +1,144 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>A LLM não resolverá todos os seus problemas</title>
-  <link rel="stylesheet" href="./../assets/pages.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <!-- MathJax para fórmulas LaTeX -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script>
-    window.MathJax = {
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-      svg: { fontCache: 'global' }
-    };
-  </script>
-  <script id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A LLM não resolve o seu problema. E tudo bem. | Blog Igor Nascimento</title>
+  <meta name="description" content="O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
 </head>
 <body>
-  <a href="javascript:history.back()" class="btn-voltar" title="Voltar">
-    <svg width="25" height="25" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="9" stroke="#00ffd0" stroke-width="2"/>
-      <polyline points="11.5,6 8,10 11.5,14" fill="none" stroke="#00ffd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </a>
-
-  <header>
-    <span class="main-illustration">
-      <!-- Salve como icon-refinado.svg -->
-        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="88px" width="88px" version="1.1" id="Layer_1" viewBox="0 0 511.999 511.999" xml:space="preserve">
-            <g>
-                <path style="fill:#90C8EC;" d="M373.121,253.933c0,11.209-9.088,20.296-20.296,20.296H158.877   c-11.212,0-20.296-9.087-20.296-20.296V127.641c0-11.209,9.085-20.296,20.296-20.296h193.948c11.209,0,20.296,9.087,20.296,20.296   L373.121,253.933L373.121,253.933z"/>
-                <path style="fill:#90C8EC;" d="M311.817,503.876h33.748V347.064c0-19.987-16.202-36.187-36.187-36.187H202.324   c-19.987,0-36.188,16.202-36.188,36.187v156.81h119.144"/>
-            </g>
-            <g>
-                <circle style="fill:#CAE9F7;" cx="205.52" cy="169.925" r="19.734"/>
-                <circle style="fill:#CAE9F7;" cx="306.184" cy="169.925" r="19.733"/>
-            </g>
-            <g>
-                <circle style="fill:#578CAD;" cx="255.283" cy="401.117" r="42.289"/>
-                <circle style="fill:#578CAD;" cx="255.846" cy="40.263" r="32.136"/>
-                <path style="fill:#578CAD;" d="M377.066,407.377h-26.993c-1.552,0-3.057,0.19-4.508,0.52v95.979h51.799v-76.202   C397.365,416.464,388.275,407.377,377.066,407.377z"/>
-                <path style="fill:#578CAD;" d="M134.631,407.377h26.994c1.553,0,3.058,0.19,4.511,0.52v95.979h-51.801v-76.202   C114.335,416.464,123.422,407.377,134.631,407.377z"/>
-                <path style="fill:#578CAD;" d="M138.932,140.924c-26.952,0.692-48.591,22.744-48.591,49.864c0,27.118,21.641,49.17,48.591,49.863   V140.924z"/>
-            </g>
-            <g style="opacity:0.2;">
-                <path style="fill:#231F20;" d="M163.494,253.933V127.641c0-11.209,9.085-20.296,20.296-20.296h-24.914   c-11.212,0-20.296,9.087-20.296,20.296v126.291c0,11.209,9.085,20.296,20.296,20.296h24.914   C172.579,274.23,163.494,265.142,163.494,253.933z"/>
-            </g>
-            <g style="opacity:0.2;">
-                <path style="fill:#231F20;" d="M227.238,310.877h-24.914c-19.987,0-36.188,16.202-36.188,36.187v156.81h24.914v-156.81   C191.05,327.079,207.252,310.877,227.238,310.877z"/>
-            </g>
-            <g style="opacity:0.2;">
-                <path style="fill:#231F20;" d="M237.915,401.119c0-19.017,12.557-35.1,29.829-40.418c-3.939-1.213-8.121-1.869-12.457-1.869   c-23.353,0-42.286,18.933-42.286,42.286c0,23.353,18.934,42.285,42.286,42.285c4.336,0,8.518-0.655,12.457-1.867   C250.471,436.219,237.915,420.136,237.915,401.119z"/>
-            </g>
-            <g style="opacity:0.1;">
-                <path style="fill:#231F20;" d="M248.629,40.261c0-13.331,8.118-24.766,19.679-29.632c-3.831-1.613-8.04-2.504-12.457-2.504   c-17.75,0-32.136,14.39-32.136,32.137c0,17.749,14.386,32.137,32.136,32.137c4.417,0,8.626-0.893,12.457-2.505   C256.746,65.027,248.629,53.592,248.629,40.261z"/>
-            </g>
-            <g style="opacity:0.2;">
-                <path style="fill:#231F20;" d="M159.546,407.377h-24.914c-11.209,0-20.296,9.087-20.296,20.296v76.203h24.914v-76.203   C139.249,416.464,148.336,407.377,159.546,407.377z"/>
-            </g>
-            <g style="opacity:0.2;">
-                <path style="fill:#231F20;" d="M115.254,190.788c0-19.653,9.272-37.129,23.677-48.314v-1.55   c-26.952,0.692-48.591,22.744-48.591,49.864c0,27.118,21.641,49.17,48.591,49.863V239.1   C124.527,227.914,115.254,210.438,115.254,190.788z"/>
-            </g>
-            <path style="fill:#578CAD;" d="M373.068,140.924c26.952,0.692,48.591,22.744,48.591,49.864c0,27.118-21.641,49.17-48.591,49.863  V140.924z"/>
-            <g>
-                <path style="fill:#231F20;" d="M352.824,282.354c15.672,0,28.42-12.75,28.42-28.421v-5.92c12.135-1.988,23.302-7.763,32.037-16.709   c10.641-10.896,16.501-25.286,16.501-40.517c0-15.233-5.86-29.623-16.501-40.518c-8.735-8.945-19.901-14.72-32.037-16.708v-5.92   c0-15.671-12.75-28.42-28.42-28.42h-88.849V79.698c18.318-3.769,32.137-20.019,32.137-39.437C296.112,18.062,278.05,0,255.851,0   c-22.2,0-40.26,18.062-40.26,40.261c0,19.418,13.818,35.668,32.136,39.437v19.523h-88.849c-15.672,0-28.42,12.75-28.42,28.42v5.963   c-12.022,2.032-23.076,7.792-31.739,16.664c-10.64,10.896-16.501,25.286-16.501,40.518s5.86,29.622,16.501,40.517   c8.664,8.872,19.718,14.631,31.739,16.664v5.963c0,15.671,12.75,28.42,28.42,28.42h88.849v20.4h-45.402   c-24.434,0-44.312,19.878-44.312,44.311v52.187h-23.38c-15.672,0-28.42,12.75-28.42,28.421v76.202c0,4.487,3.636,8.124,8.124,8.124   h51.801h119.144c4.488,0,8.124-3.637,8.124-8.124s-3.636-8.124-8.124-8.124H174.26v-87.855v-60.831   c0-15.474,12.589-28.063,28.064-28.063h107.054c15.474,0,28.063,12.589,28.063,28.063v60.832v87.855h-25.624   c-4.488,0-8.124,3.637-8.124,8.124c0,4.487,3.636,8.124,8.124,8.124h33.748h51.799c4.488,0,8.124-3.637,8.124-8.124v-76.202   c0-15.671-12.75-28.421-28.422-28.421h-23.377v-52.187c0-24.434-19.878-44.311-44.311-44.311h-45.403v-20.4h88.849V282.354z    M231.839,40.261c0-13.241,10.772-24.013,24.012-24.013c13.241,0,24.013,10.772,24.013,24.013s-10.772,24.013-24.013,24.013   C242.61,64.274,231.839,53.502,231.839,40.261z M122.459,427.673c0-6.712,5.461-12.172,12.172-12.172h23.38v80.25h-35.552   C122.459,495.752,122.459,427.673,122.459,427.673z M377.066,415.501c6.713,0,12.173,5.461,12.173,12.172v68.078h-35.55v-80.25   H377.066z M413.535,190.788c0,19.936-13.636,36.447-32.291,40.694v-81.389C399.901,154.339,413.535,170.851,413.535,190.788z    M98.464,190.788c0-19.829,13.492-36.266,31.992-40.621v81.242C111.955,227.053,98.464,210.617,98.464,190.788z M146.704,253.933   v-10.926c0.23-0.757,0.351-1.55,0.351-2.356v-99.727c0-0.806-0.121-1.599-0.351-2.356v-10.926c0-6.712,5.461-12.172,12.172-12.172   h193.948c6.712,0,12.172,5.461,12.172,12.172v12.388c-0.033,0.296-0.053,0.595-0.053,0.895v99.727c0,0.3,0.021,0.599,0.053,0.895   v12.388c0,6.712-5.461,12.172-12.172,12.172H158.877C152.165,266.105,146.704,260.645,146.704,253.933z"/>
-                <path style="fill:#231F20;" d="M233.375,169.927c0-15.36-12.498-27.857-27.86-27.857c-15.36,0-27.856,12.497-27.856,27.857   s12.496,27.857,27.856,27.857C220.877,197.784,233.375,185.287,233.375,169.927z M205.514,181.536   c-6.401,0-11.608-5.208-11.608-11.609s5.207-11.609,11.608-11.609c6.403,0,11.612,5.208,11.612,11.609   S211.918,181.536,205.514,181.536z"/>
-                <path style="fill:#231F20;" d="M306.187,197.784c15.361,0,27.857-12.497,27.857-27.857s-12.496-27.857-27.857-27.857   c-15.361,0-27.858,12.497-27.858,27.857S290.826,197.784,306.187,197.784z M306.187,158.318c6.401,0,11.609,5.208,11.609,11.609   s-5.208,11.609-11.609,11.609c-6.402,0-11.61-5.208-11.61-11.609S299.785,158.318,306.187,158.318z"/>
-                <path style="fill:#231F20;" d="M290.693,221.85c1.094-4.351-1.547-8.765-5.898-9.859c-4.349-1.095-8.765,1.547-9.859,5.898   c-2.463,9.8-11.255,16.645-21.377,16.645c-10.169,0-18.968-6.883-21.397-16.739c-1.073-4.356-5.477-7.019-9.832-5.944   c-4.356,1.073-7.017,5.476-5.944,9.832c4.222,17.132,19.509,29.099,37.173,29.099C271.141,250.782,286.413,238.885,290.693,221.85z   "/>
-                <path style="fill:#231F20;" d="M255.287,350.709c-27.795,0-50.41,22.613-50.41,50.41c0,27.796,22.614,50.409,50.41,50.409   c27.794,0,50.408-22.613,50.408-50.409C305.695,373.323,283.082,350.709,255.287,350.709z M255.287,435.28   c-18.837,0-34.162-15.324-34.162-34.161c0-18.837,15.324-34.162,34.162-34.162c18.836,0,34.159,15.324,34.159,34.162   C289.447,419.955,274.122,435.28,255.287,435.28z"/>
-            </g>
-            </svg>
-
-    </span>
-    <h1>A LLM não resolverá todos os seus problemas</h1>
-    <div class="subtitle">
-      Por que apostar só em modelos de linguagem pode ser um erro estratégico.
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
     </div>
   </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">IA aplicada</span>
+      <h1>A LLM não resolve o seu problema. E tudo bem.</h1>
+      <p class="standfirst">Antes de colocar um modelo de linguagem no meio do fluxo, vale perguntar o que ele realmente faz, o que custa e o que você perde em previsibilidade. Uma conversa sobre escolher a ferramenta certa, com um caso real em que a resposta foi "não".</p>
+      <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
 
-  <main>
-    <section>
-      <h2>LLM é previsão, não compreensão</h2>
-      <p>
-        Modelos de linguagem de grande escala (LLMs), como GPT, Llama ou Gemini, são frequentemente apresentados como a “inteligência artificial definitiva”, mas existe um equívoco: o que esses modelos fazem é <strong>prever a próxima palavra</strong> com base no contexto. O resultado é um texto que pode parecer inteligente, mas é apenas estatisticamente plausível.
-      </p>
-      <svg class="svg-center" xmlns="http://www.w3.org/2000/svg" width="600" height="200" viewBox="0 0 600 200">
-        <rect width="600" height="200" fill="#fafafa"/>
+    <h2>O que o modelo realmente faz</h2>
+    <p>Um modelo de linguagem recebe uma sequência de tokens e devolve uma distribuição de probabilidade sobre o próximo token. Só isso. Tudo que parece raciocínio, planejamento ou compreensão é consequência de fazer essa previsão muito bem, em escala, sobre uma quantidade absurda de texto. Não digo isso para diminuir a tecnologia. Digo porque <strong>a maioria das decisões ruins que vi com LLM nasce de esquecer esse ponto</strong>: tratar um previsor de texto como se fosse um sistema que entende regras e as obedece.</p>
+    <p>Na prática, isso aparece de três formas. O modelo <strong>não é determinístico</strong>: a mesma entrada pode gerar saídas diferentes, e mesmo com temperatura zero você depende da versão do modelo que o fornecedor serve hoje. O modelo <strong>não sabe o que não sabe</strong>: ele completa com a resposta mais plausível, não com "não tenho essa informação". E o modelo <strong>custa por token</strong>, na entrada e na saída, o que transforma cada chamada em uma linha na fatura.</p>
 
-        <text x="50%" y="30" text-anchor="middle"
-                font-family="Inter, sans-serif" font-size="18" font-weight="bold" fill="#222">
-            LLM: predição de token
-        </text>
-
-        <rect x="100" y="70" width="300" height="50" rx="8" fill="#eef"/>
-        <text x="250" y="95" text-anchor="middle" dominant-baseline="central"
-                font-family="monospace" font-size="16" fill="#333">
-            "A LLM não ______"
-        </text>
-
-        <defs>
-            <marker id="arrowPred" markerUnits="strokeWidth" markerWidth="8" markerHeight="8"
-                    viewBox="0 0 10 10" refX="10" refY="5" orient="auto">
-            <path d="M 0 0 L 10 5 L 0 10 Z" fill="#555"/>
-            </marker>
-        </defs>
-
-        <!-- linha com seta posicionada antes da caixa -->
-        <line x1="380" y1="95" x2="472" y2="95"
-                stroke="#555" stroke-width="2" marker-end="url(#arrowPred)"/>
-
-        <rect x="480" y="75" width="100" height="40" rx="6" fill="#d0f0ff" stroke="#339"/>
-        <text x="530" y="95" text-anchor="middle" dominant-baseline="central"
-                font-family="monospace" font-size="16" fill="#005">
-            resolve
-        </text>
-        </svg>
-
-    </section>
-
-    <section>
-      <h2>Matemática básica do LLM: pesos, bias e token</h2>
-      <p>
-        No núcleo do LLM está uma rede neural com bilhões de <strong>pesos</strong> e <strong>bias</strong>, treinados para minimizar um erro em cada etapa (token). A ativação é calculada como:
-      </p>
-      <p>\[ h = f(Wx + b) \]</p>
-      <p>
-        Onde:
+    <h2>A conversa que vale ter antes</h2>
+    <p>Quando alguém chega com "vamos usar uma LLM para isso", a primeira coisa que faço é tentar reformular o problema em uma frase sem a palavra "IA". Quase sempre cai em uma destas categorias, e cada uma tem uma ferramenta mais barata e mais previsível que um modelo generativo.</p>
+    <div class="versus">
+      <div>
+        <h4>Problema</h4>
         <ul>
-          <li><strong>W</strong>: matriz de pesos</li>
-          <li><strong>x</strong>: vetor de entrada (embedding)</li>
-          <li><strong>b</strong>: vetor de bias</li>
-          <li><strong>f</strong>: função não linear (ReLU, GELU...)</li>
+          <li>Decidir entre categorias conhecidas</li>
+          <li>Achar o item parecido num acervo</li>
+          <li>Extrair campos de documento com layout fixo</li>
+          <li>Aplicar regra que o negócio já sabe escrever</li>
+          <li>Gerar texto livre para pessoas lerem</li>
         </ul>
-      </p>
-      <p>A função de perda usada é:</p>
-      <p> 
-        \[
-            \mathrm{Loss} = -\sum_{i=1}^{N} \log P(y_i \mid x_{&lt;i})
-        \]
-    </p>
-    </section>
-
-    <section>
-      <h2>Transformers: revolução da atenção</h2>
-      <p>
-        Ao contrário de RNNs, os Transformers utilizam o mecanismo de <strong>self‑attention</strong>, que permite que cada token “veja” todos os outros de forma paralela, capturando dependências de longa distância com eficiência.
-      </p>
-      <!-- Self-Attention SVG -->
-      <svg class="svg-center" xmlns="http://www.w3.org/2000/svg" width="400" height="200">
-        <rect x="0" y="0" width="400" height="200" fill="#fff"/>
-        <text x="20" y="30" font-family="sans-serif" font-size="16" font-weight="bold">Self‑Attention (Q,K,V)</text>
-        <circle cx="100" cy="100" r="30" fill="#cee" stroke="#00a" stroke-width="2"/>
-        <text x="85" y="105" font-family="sans-serif" font-size="14">Q</text>
-        <circle cx="200" cy="100" r="30" fill="#eec" stroke="#aa0" stroke-width="2"/>
-        <text x="185" y="105" font-family="sans-serif" font-size="14">K</text>
-        <circle cx="300" cy="100" r="30" fill="#cec" stroke="#0a0" stroke-width="2"/>
-        <text x="285" y="105" font-family="sans-serif" font-size="14">V</text>
-        <defs><marker id="arrow" markerWidth="10" markerHeight="10"
-          refX="5" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#333"/></marker></defs>
-        <line x1="130" y1="100" x2="170" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
-        <line x1="230" y1="100" x2="270" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
-        <text x="140" y="90" font-family="sans-serif" font-size="12">dot</text>
-        <text x="240" y="90" font-family="sans-serif" font-size="12">softmax</text>
-      </svg>
-      <p style="text-align:center;font-size:0.95em;color:#aaa">
-        Visualização do mecanismo de atenção
-      </p>
-      <p>Fórmula:</p>
-      <p>\[ \mathrm{Attention}(Q, K, V) = \mathrm{softmax} \left( \frac{QK^T}{\sqrt{d_k}} \right) V \]</p>
-      <ul>
-        <li><b>Q</b>: queries</li>
-        <li><b>K</b>: keys</li>
-        <li><b>V</b>: values</li>
-        <li><b>dₖ</b>: dimensão</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Transformers vs. RNNs</h2>
-      <p>
-        RNNs processam sequências de forma recursiva e enfrentam limitações em dependências longas. Transformers são paralelizáveis e excelentes em contexto extenso.
-      </p>
-      <!-- RNN Unfold SVG -->
-      <svg class="svg-center" xmlns="http://www.w3.org/2000/svg" width="400" height="200">
-        <rect x="0" y="0" width="400" height="200" fill="#fff"/>
-        <text x="20" y="25" font-family="sans-serif" font-size="16" font-weight="bold">RNN Unfold</text>
-        <defs><marker id="arrow2" markerWidth="7" markerHeight="7"
-          refX="5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#333"/></marker></defs>
-        <circle cx="100" cy="100" r="20" fill="#ddd" stroke="#333"/>
-        <circle cx="200" cy="100" r="20" fill="#ddd" stroke="#333"/>
-        <circle cx="300" cy="100" r="20" fill="#ddd" stroke="#333"/>
-        <text x="95" y="105" font-family="sans-serif" font-size="12">h₁</text>
-        <text x="195" y="105" font-family="sans-serif" font-size="12">h₂</text>
-        <text x="295" y="105" font-family="sans-serif" font-size="12">h₃</text>
-        <line x1="120" y1="100" x2="180" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow2)"/>
-        <line x1="220" y1="100" x2="280" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow2)"/>
-        <rect x="80" y="140" width="40" height="20" fill="#eef" stroke="#333"/>
-        <rect x="180" y="140" width="40" height="20" fill="#eef" stroke="#333"/>
-        <rect x="280" y="140" width="40" height="20" fill="#eef" stroke="#333"/>
-        <text x="90" y="155" font-family="sans-serif" font-size="12">x₁</text>
-        <text x="190" y="155" font-family="sans-serif" font-size="12">x₂</text>
-        <text x="290" y="155" font-family="sans-serif" font-size="12">x₃</text>
-      </svg>
-      <p style="text-align:center;font-size:0.95em;color:#aaa">
-        Estrutura básica de RNN desdobrada
-      </p>
-    </section>
-
-    <section>
-      <h2>O segredo por trás do sucesso</h2>
-      <p>
-        LLMs ganham força com:
+      </div>
+      <div>
+        <h4>Ferramenta que eu tentaria primeiro</h4>
         <ul>
-          <li><strong>Fine-tuning</strong> para tarefas específicas;</li>
-          <li><strong>RLHF</strong> para alinhamento;</li>
-          <li><strong>Agentes e pipelines</strong> conectando modelo, APIs, dados e automação.</li>
+          <li>Classificador treinado, barato e auditável</li>
+          <li>Embeddings e busca vetorial</li>
+          <li>OCR com regras ou modelo de extração</li>
+          <li>Código. Sério.</li>
+          <li>Aí sim, uma LLM</li>
         </ul>
-      </p>
-      <!-- Transformer Stack SVG -->
-      <svg class="svg-center" xmlns="http://www.w3.org/2000/svg" width="400" height="300">
-        <rect x="0" y="0" width="400" height="300" fill="#fff"/>
-        <text x="20" y="25" font-family="sans-serif" font-size="16" font-weight="bold">Transformer Stack (Encoder)</text>
-        <defs><marker id="arrow3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#333"/></marker></defs>
-        <rect x="50" y="50" width="300" height="50" fill="#eef" stroke="#333"/>
-        <text x="180" y="80" font-family="sans-serif" font-size="14" text-anchor="middle">Self‑Attention + Add & Norm</text>
-        <rect x="50" y="120" width="300" height="50" fill="#eef" stroke="#333"/>
-        <text x="180" y="150" font-family="sans-serif" font-size="14" text-anchor="middle">Feed‑Forward + Add & Norm</text>
-        <line x1="200" y1="100" x2="200" y2="120" stroke="#333" stroke-width="2" marker-end="url(#arrow3)"/>
-        <line x1="200" y1="170" x2="200" y2="200" stroke="#333" stroke-width="2" marker-end="url(#arrow3)"/>
-        <text x="200" y="230" font-family="sans-serif" font-size="12" text-anchor="middle">...repeat N layers...</text>
-      </svg>
-      <p style="text-align:center;font-size:0.95em;color:#aaa">
-        Visão da pilha de camadas no Transformer
-      </p>
-    </section>
+      </div>
+    </div>
+    <p>Isso não significa que a LLM nunca entra nos quatro primeiros. Significa que ela entra <strong>como componente</strong>, geralmente na ponta mais difícil do funil, depois que as ferramentas previsíveis já resolveram o grosso do volume.</p>
 
-    <section>
-      <h2>Conclusão e próximos artigos</h2>
-      <p>
-        LLMs são ferramentas poderosas, mas sem arquitetura, monitoramento e curadoria, são apenas previsores de próxima palavra.
-      </p>
-      <p>A série continuará com:</p>
-      <ul>
-        <li>🔧 Fine-tuning e RLHF</li>
-        <li>🔗 Agentes e integrações</li>
-        <li>🎯 Detecção de vieses e monitoramento</li>
-      </ul>
-      <p class="tips">
-        <strong>Dica final:</strong> Use LLM como componente, não solução completa.
-      </p>
-    </section>
-  </main>
+    <h2>Um caso em que a resposta foi "não"</h2>
+    <p>Precisei detectar logomarcas em imagens em escala, com marcas novas entrando no catálogo o tempo todo. A proposta inicial era mandar cada imagem para um modelo multimodal e perguntar "qual marca aparece aqui?". Funciona na demonstração. Em produção, três problemas: <strong>custo por imagem</strong> em um volume de milhões, <strong>latência</strong> incompatível com processamento em tempo real, e <strong>marca nova</strong> significava reescrever o prompt e torcer.</p>
+    <p>O que acabou em produção, e virou o <a href="https://github.com/IMNascimento/Stratosphere" target="_blank" rel="noopener">Stratosphere</a>, foi separar duas perguntas. <em>Onde tem logo</em> é respondido por um detector agnóstico de marca, que acha regiões candidatas sem saber de quem são. <em>Qual logo é</em> é respondido por busca vetorial num banco de referências. Marca nova vira uma pasta de imagens a mais, sem retreino e sem prompt. É a mesma lógica de detector de rosto mais reconhecimento facial.</p>
+    <div class="callout">
+      <span class="label">Trade-off</span>
+      <p>O pipeline em duas etapas é mais previsível, mais barato por imagem e explicável: dá para mostrar a região detectada e a referência mais próxima. Em troca, exige manter um banco de referências de qualidade e calibrar limiares de similaridade, trabalho que o modelo generativo "esconderia" dentro de si. Prefiro o trabalho visível ao custo invisível.</p>
+    </div>
 
-  <footer>
-    Desenvolvido por 
-    <a href="https://www.linkedin.com/in/igor-m-nascimento/" target="_blank">Igor Nascimento</a> 
-    – <span id="ano-atual"></span> | &copy; <a href="https://sophialabs.com.br" target="_blank">SophiaLabs</a>
+    <h2>Quando a LLM é a ferramenta certa</h2>
+    <p>Existem problemas em que nada substitui um modelo de linguagem: interpretar pedido em linguagem natural, resumir, reescrever, gerar código, conversar. Aí a conversa muda de "se" para "como", e as decisões de arquitetura é que fazem a diferença entre protótipo e sistema.</p>
+    <ul>
+      <li><strong>Recuperação antes da geração.</strong> Dar ao modelo os documentos certos no contexto (RAG) resolve a maior parte das alucinações factuais e permite citar a fonte. Fine-tuning ensina formato e estilo, não fatos atualizados.</li>
+      <li><strong>Saída estruturada.</strong> Se o resultado alimenta outro sistema, peça JSON com esquema validado e trate falha de validação como erro normal, com retentativa ou fallback.</li>
+      <li><strong>Avaliação contínua.</strong> Sem um conjunto de casos de teste com resposta esperada, você não sabe se a troca de versão do modelo melhorou ou piorou. Esse conjunto é o ativo mais valioso do projeto.</li>
+      <li><strong>Orçamento e circuito.</strong> Limite de tokens por requisição, cache de respostas iguais, e um caminho degradado quando o fornecedor cai. Uma API externa no meio do fluxo é uma dependência como qualquer outra.</li>
+    </ul>
+
+    <h2>Fine-tuning, RLHF e agentes: o que cada um resolve</h2>
+    <p>Esses três termos aparecem juntos em toda apresentação e resolvem problemas diferentes. <strong>Fine-tuning</strong> ajusta pesos para uma tarefa ou um estilo; é caro de manter e congela conhecimento numa data. <strong>RLHF</strong> é a etapa que o fornecedor faz para o modelo preferir respostas que humanos aprovam; você consome o resultado, raramente faz. <strong>Agentes</strong> são o modelo decidindo qual ferramenta chamar em sequência; multiplicam capacidade e multiplicam também latência, custo e superfície de erro, porque cada passo é uma nova chance de alucinar.</p>
+    <p>Minha regra para agentes: só quando o número de passos é imprevisível. Se o fluxo é sempre "buscar, resumir, classificar", isso é um pipeline com três chamadas e não precisa de um modelo decidindo a ordem.</p>
+
+    <div class="callout callout--dark">
+      <span class="label">O que eu faria diferente</span>
+      <p>No primeiro projeto com LLM que coloquei em produção, medi qualidade olhando exemplos à mão. Quando o fornecedor atualizou o modelo, a saída mudou de formato e quebrou o consumidor sem ninguém notar por dias. Hoje a avaliação automática com casos reais entra no mesmo dia que a primeira chamada à API.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>LLM prevê o próximo token. Não é determinística, não sabe o que não sabe e cobra por token.</li>
+      <li>Reformule o problema sem a palavra "IA". Classificador, busca vetorial, OCR e código resolvem a maior parte do volume com previsibilidade.</li>
+      <li>Quando a LLM é a ferramenta certa, a arquitetura em volta (recuperação, esquema, avaliação, orçamento) é o que separa protótipo de produto.</li>
+      <li>Use o modelo como componente. Nunca como a solução inteira.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>18 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
   </footer>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const yearSpan = document.getElementById('ano-atual');
-      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    });
-  </script>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
 </html>

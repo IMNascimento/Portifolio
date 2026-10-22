@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado | Blog Igor Nascimento</title>
+  <meta name="description" content="Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Visão computacional</span>
+      <h1>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h1>
+      <p class="standfirst">Detecção de marcas em escala, com marcas novas entrando o tempo todo e sem ciclo de retreino. Uma conversa sobre as decisões que fazem a pipeline acertar, os números que forçaram cada uma delas, e a parte que ninguém gosta de ouvir: o banco de referências é o componente que mais determina o resultado e o que mais se deteriora em silêncio.</p>
+      <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>18 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O requisito que descarta a resposta óbvia</h2>
+    <p>O problema parece simples: receber fotos de eventos, redes sociais e transmissões, e dizer quais marcas aparecem em cada uma. A resposta óbvia é treinar um classificador, ou um detector, com uma classe por marca. Ela morre no primeiro requisito de negócio: <strong>marca nova entra no portfólio toda semana, e não pode exigir um ciclo de retreino</strong>. Com classificador por marca, cada cliente novo é uma rodada de anotação, treino e validação, e o custo de inferência cresce com o número de classes.</p>
+    <p>O <a href="https://github.com/IMNascimento/Stratosphere" target="_blank" rel="noopener">Stratosphere</a> parte de outra decomposição, que cabe numa frase: <strong>separar <em>onde tem logo</em> de <em>qual logo é</em>.</strong> Um detector agnóstico de marca acha as regiões candidatas. Uma busca vetorial num banco de referências diz de quem são. Marca nova vira uma pasta de imagens a mais. É a mesma lógica de detector de rosto, que acha qualquer rosto, somado a reconhecimento facial, que compara com um cadastro.</p>
+    <div class="versus">
+      <div>
+        <h4>Classificador por marca</h4>
+        <ul>
+          <li>Marca nova: um ciclo de treino</li>
+          <li>Inferência cresce com o número de marcas</li>
+          <li>Quem sabe o que é "Nike": o modelo</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Retrieval (Stratosphere)</h4>
+        <ul>
+          <li>Marca nova: copiar imagens numa pasta</li>
+          <li>Inferência constante em relação às marcas</li>
+          <li>Quem sabe o que é "Nike": <strong>o banco</strong></li>
+        </ul>
+      </div>
+    </div>
+    <p>Essa escolha tem uma consequência estrutural que vale destacar: o detector <strong>nunca</strong> é informado de nome de marca. Os prompts são de conceito ("logo", "emblem", "wordmark", "printed label on packaging"), e a entidade <code>Detection</code> nem tem campo <code>brand</code>. A ausência é proposital. É o que impede o acoplamento de voltar por descuido numa refatoração qualquer.</p>
+
+    <h2>A pipeline: cada camada só vê o que a anterior deixou passar</h2>
+    <p>Um detector de vocabulário aberto devolve cerca de 55 regiões candidatas por imagem. Se cada uma passasse por todas as camadas, a pipeline custaria segundos. A regra de projeto é que <strong>cada camada é mais cara que a anterior e só vê o que a anterior não resolveu</strong>. Na ordem:</p>
+    <ol>
+      <li><strong>Pré-filtro</strong>: densidade de bordas. Imagem sem estrutura não merece uma passada de detector. Permissivo de propósito, porque o que se descarta aqui nunca mais volta.</li>
+      <li><strong>Detector agnóstico</strong> (OWLv2) com confiança mínima de 0,05. Baixo de propósito: o detector só precisa acertar <em>onde</em>. Limiar alto troca recall, que é irrecuperável, por precisão, que é recuperável adiante.</li>
+      <li><strong>Codificador</strong> (SigLIP2) transforma cada recorte em um vetor, e a <strong>busca vetorial</strong> devolve os 25 vizinhos mais próximos no banco.</li>
+      <li><strong>Roteador</strong>, uma primeira vez, sem geometria. O que ele decide com folga (aceite ou rejeição) está decidido.</li>
+      <li><strong>Verificação geométrica</strong> (DISK + LightGlue) só nas regiões em dúvida, e o roteador decide de novo.</li>
+      <li><strong>Colapso de caixas aninhadas</strong>, <strong>corroboração dentro da imagem</strong> e, opcionalmente, um <strong>juiz visual</strong> (Qwen3.5-4B) sobre o que ainda ficou em revisão.</li>
+    </ol>
+    <p>O ganho dessa ordem é medido: a pipeline roda em <strong>0,7 segundo por imagem</strong> numa RTX 3060. Verificando geometria em tudo, como a primeira implementação fazia, são 3,0 segundos para o mesmo resultado. Numa imagem típica eram 55 regiões vezes 4 referências, 220 comparações a cerca de 87 ms cada, a maioria em regiões que o consenso já tinha decidido.</p>
+    <div class="callout">
+      <span class="label">Trade-off</span>
+      <p>Rodar geometria só na dúvida tem um custo dito claramente no código: uma região rejeitada pela pontuação não ganha segunda chance. Isso ameaçava a fila mais valiosa do sistema, o <em>órfão geométrico</em>, que depende de geometria forte com similaridade baixa. A solução foi um guarda: região rejeitada mas com similaridade acima do portão da geometria continua sendo verificada. É uma exceção à regra de economia, e ela existe porque a regra, sozinha, apagaria o mecanismo de melhoria do banco.</p>
+    </div>
+
+    <h2>Por que funciona: cinco decisões, cada uma com o número que a forçou</h2>
+
+    <h3>1. O codificador certo, e o teste que não precisava de rótulo</h3>
+    <p>A primeira versão rodava com DINOv2, e o resultado era inexplicável: <code>amazon</code> e <code>azul</code> com similaridade 0,903, <code>itau</code> lido como <code>sadia</code>, 238 pares de marcas diferentes parecidos demais no banco. A causa só apareceu com um teste que o próprio banco oferecia de graça. Várias referências vinham da <strong>mesma foto de backdrop</strong>, recortadas em marcas diferentes, e o nome do arquivo guardava o hash da origem. Isso dá dois conjuntos sem rotular nada: positivos (mesma marca, fotos diferentes) e negativos (<strong>mesma foto, marcas diferentes</strong>).</p>
+    <p>Medido com AUC, que avalia a ordem e não o valor absoluto: <strong>DINOv2 separava com 0,515, que é moeda</strong>. SigLIP2, com 0,812. O DINOv2 é auto-supervisionado e aprendeu que o que torna duas imagens parecidas é a <em>superfície</em>: o painel, a luz, a moldura. Dois logos diferentes do mesmo painel pontuavam 0,676, acima de duas fotos da mesma marca, 0,671. O SigLIP2 foi treinado casando imagem com legenda, e legenda fala de marca, não de "retângulo branco com moldura escura".</p>
+    <p>Há um detalhe que confirma o mecanismo: apertar o recorte <em>ajuda</em> o DINOv2 (0,515 para 0,655, porque tira o painel do quadro) e <em>atrapalha</em> o SigLIP2 (0,812 para 0,778). Um precisava que o contexto fosse escondido; o outro usa o contexto porque entende o que está olhando.</p>
+    <div class="callout callout--dark">
+      <span class="label">A lição que vale fora deste projeto</span>
+      <p>A tabela de nove codificadores medidos em imagem crua apontava o SigLIP2 <em>giant</em> como vencedor, com 0,920. Medindo os vetores <strong>como ficam no índice</strong>, depois do recorte quadrado com letterbox que a pipeline aplica, a ordem inverteu: o <em>base</em> com cabeça de pooling foi o único que subiu (0,801 para 0,862) e empatou com um modelo três vezes maior. A causa é o letterbox: a agregação por quarto central funciona em imagem cheia e falha em imagem que já tem borda vazia por construção. <strong>Só conta a medição feita na população em que o sistema roda.</strong> O mesmo erro quase fez o SIFT parecer melhor que o LightGlue.</p>
+    </div>
+
+    <h3>2. Consenso vale mais que similaridade absoluta</h3>
+    <p>A intuição diz que a decisão é "qual a similaridade do vizinho mais próximo". Os dados dizem outra coisa. Medido em imagem real: um swoosh de verdade teve similaridade 0,712 com 21 de 25 vizinhos da mesma marca; um texto sem marca nenhuma teve similaridade <strong>maior</strong>, 0,837, com apenas 3 de 25, e o resto espalhado entre quatro marcas sem relação. Pela similaridade, o ruído ganha do logo. Pelo consenso do top-k, não.</p>
+    <p>Por isso o consenso tem peso 0,20 na pontuação e é também uma regra de aceite por conta própria: em 84 imagens rotuladas, consenso acima de 0,80 não errou uma vez em 15 regiões. Mas ele tem um teto: é normalizado pelo mínimo entre k e o número de referências da marca, senão uma marca com 5 referências jamais alcançaria o consenso de uma com 40, e a cobertura do banco viraria critério de decisão sem ninguém ter escolhido isso. E tem um piso: <strong>consenso não resgata região abaixo do limiar de rejeição</strong>. Ele promove de revisão para aceite, nunca de descarte para aceite.</p>
+
+    <h3>3. A geometria só soma</h3>
+    <p>A verificação geométrica pergunta "é literalmente o mesmo desenho?" casando pontos entre o recorte e a referência. A trava mais importante do roteador é que <strong>"não confirmei" significa "não sei", nunca "não é"</strong>. Logo chapado, pequeno ou vetorial não tem pontos para casar, e contagem baixa não é prova contra.</p>
+    <p>Isso foi aprendido da forma difícil. Ao trocar SIFT por LightGlue, que é muito melhor, o resultado em 20 imagens de rede social <em>piorou</em>: 10 aceites contra 18. O motivo é contraintuitivo. O SIFT ficava mudo em metade dos pares certos, e o silêncio dele redistribuía o peso e <em>subia</em> a nota. O LightGlue opina em quase tudo, então uma região com 25 inliers passou a receber 0,28 de geometria onde antes recebia redistribuição, e caiu abaixo do limiar <strong>por ter ganhado um sinal</strong>. A solução tem duas partes: contagem dentro da faixa de ruído conta como silêncio (peso redistribuído), e, se mesmo assim a geometria baixaria a nota, ela é silenciada.</p>
+    <p>Há um caso real registrado no código que mostra o que estava em jogo: um swoosh com consenso 0,92 e 23 das 25 respostas em <code>nike</code> caiu de aceite para descarte porque 12 inliers derrubaram a nota de 0,42 para 0,377, cruzando o piso de rejeição por 23 milésimos.</p>
+
+    <h3>4. O roteador é uma política ordenada, e a ordem é o produto</h3>
+    <p>O núcleo do sistema é um serviço de domínio puro, sem I/O e sem GPU, que aplica regras em ordem fixa: sem candidatos, marca negativa, grupo de confusão, parecer do juiz, órfão geométrico, consenso, aceite por geometria, limiares. A primeira que casa decide, e <strong>as regras de negócio vêm antes das de evidência</strong>. Invertido, um empate <code>gatorade</code> contra <code>powerade</code> com geometria forte viraria órfão e escaparia do desempate obrigatório.</p>
+    <p>Duas filas nessa lista merecem explicação porque não são óbvias. <strong>Negativa</strong> é marca cadastrada no banco que não é cliente. Sem ela, o sistema é obrigado a escolher entre as marcas do portfólio e sempre escolhe alguma; com ela, "isto é logo de quem não interessa" vira um acerto, não uma rejeição. <strong>Órfão</strong> é a mais valiosa: a geometria confirma a marca e o banco não reconhece bem a variação. Não é erro. É o sistema dizendo "tenho esta marca e não tenho esta aplicação dela". Promover essas regiões de volta ao banco é o que faz o sistema melhorar com o uso.</p>
+    <p>Cada decisão carrega <code>reasons</code>, as regras na ordem em que decidiram, e <code>contributions</code>, quanto cada sinal somou. Parece enfeite até a primeira vez que alguém pergunta "por que esta região caiu nesta fila?" e a resposta sai do JSON sem reexecutar nada.</p>
+
+    <h3>5. O que a imagem inteira sabe e a região não</h3>
+    <p>Todo o resto decide região por região. Mas ninguém fotografa um logo isolado: fotografa um backdrop com o patrocinador repetido oito vezes. Numa imagem real, <code>volkswagen</code> aparecia três vezes, uma aceita com 110 inliers e duas em revisão. A <strong>corroboração</strong> aceita a região em revisão quando a mesma foto já confirmou a marca em outra caixa, por conta própria. Isso não é baixar o limiar: baixar o limiar compra as mesmas promoções e paga com falso aceite em toda região do sistema. Aqui a promoção exige uma evidência que o limiar não tem como exprimir, e duas travas a mantêm honesta: a testemunha tem que ser um aceite (duas dúvidas não viram certeza), e a região promovida precisa de similaridade própria alta, porque região errada tem mediana 0,539 e p90 0,755.</p>
+
+    <h2>Os trade-offs que o projeto assume de olhos abertos</h2>
+    <ul>
+      <li><strong>O recall do detector é o teto do sistema.</strong> Na foto de referência, com 9 marcas e 15 marcações, faltou só a marca encoberta pela cabeça do entrevistado. Limite do detector, não do reconhecimento. Nenhuma regra posterior recupera isso.</li>
+      <li><strong>Colapsar caixas aninhadas apaga logo pequeno legítimo dentro de uma caixa maior.</strong> O dado forçou a regra: num painel, o logo da Amazon gerou duas caixas aninhadas afirmando <code>sadia</code> e <code>suvinil</code>, as duas erradas. Patrocinador fica lado a lado, não um dentro do outro. Fica a de maior pontuação, e o custo é assumido.</li>
+      <li><strong>O juiz visual custa memória, não tempo.</strong> O Qwen3.5-4B separa par certo de errado com AUC 0,995 e confirma 38 de 40 sem deixar passar nenhum errado; o Qwen2-VL-2B, metade do tamanho, marca 0,700 e responde "sim" para quase tudo. Mas são 9,3 GB de VRAM ao lado do detector e do codificador numa placa de 12 GB. Como só roda na fila de revisão, cerca de 1% das regiões, o impacto no tempo é pequeno. O risco de memória não é, e por isso vem desligado por padrão.</li>
+      <li><strong>Os dois cortes do juiz são assimétricos de propósito.</strong> Confirma acima de 0,75, nega abaixo de 0,04. Confirmar errado põe marca errada no relatório; negar errado apaga detecção real em silêncio, que é pior.</li>
+      <li><strong>Precisão e recall vêm de uma imagem.</strong> O README diz isso com todas as letras: serve para detectar regressão grosseira, não para prometer desempenho em produção. Eu preferiria um conjunto maior, e o projeto registra isso como dívida.</li>
+      <li><strong>Não há suíte de testes</strong>, por decisão de escopo documentada. O domínio foi escrito puro justamente para que a suíte entre depois sem refatoração, e o primeiro arquivo a cobrir é o roteador: maior risco, menor custo de teste.</li>
+    </ul>
+
+    <h2>O que apodrece quando o banco é mal cuidado</h2>
+    <p>Esta é a parte que eu considero a mais importante do projeto, porque é a que não aparece em nenhuma demonstração. <strong>O banco de referências determina o resultado mais que o detector e mais que os limiares. Marca que o banco cobre mal não é recuperável por regra nenhuma.</strong> E ele se deteriora de formas que não disparam alarme. Cada item abaixo veio de um caso medido.</p>
+
+    <h3>Cobertura de variante vale mais que quantidade</h3>
+    <p>Numa coletiva de imprensa, com a marca correta em primeiro lugar na busca em todos os casos, a <code>nike</code> foi <strong>rejeitada</strong>, e ela tinha 35 referências no banco. Só que 27 eram de uniforme e 2 de backdrop. Um swoosh gigante num painel procurava vizinho entre fotos de camisa e não achava nenhuma parecida: o consenso desabava para 2 de 25 e a região morria. Não era dúvida sobre a marca; era aritmética do banco. Quatro referências boas de tipos diferentes (backdrop, uniforme, digital, logo oficial) valem mais que trinta do mesmo tipo.</p>
+
+    <h3>Enquadrar na placa ensina a placa</h3>
+    <p>Medido no par <code>amazon</code> contra <code>azul</code>, recortados da mesma foto: com placa, moldura e fundo, 0,903 de similaridade entre marcas diferentes. Tirando o fundo, 0,801. Só o wordmark, 0,630. Cor quase não entra nessa conta: a mesma imagem em tons de cinza fica a 0,929 do original. O que separa marca de marca é a forma do que sobra no quadro.</p>
+    <p>Mas há um piso. Cortando a 40%, a similaridade <em>sobe</em> de novo para 0,699: o corte comeu letras, e fragmento mutilado volta a parecer com outro fragmento mutilado. Por isso a ferramenta de reenquadramento usa a caixa do próprio detector da pipeline, com folga pequena, e não uma fração fixa. E usa o <em>mesmo</em> detector de produção porque assimetria de preparo entre referência e consulta é fonte silenciosa de similaridade baixa em par que deveria casar.</p>
+
+    <h3>PNG com transparência descartada vira retângulo preto</h3>
+    <p>Quatro referências do banco original eram exatamente isso, e uma delas colocava <code>cimed</code> e <code>nike</code> a <strong>0,951</strong> de similaridade, o pior par do banco inteiro, entre duas marcas sem nenhuma semelhança. Um bug de carregamento de imagem virou um ímã permanente de falso positivo, e ninguém veria isso olhando a pasta.</p>
+
+    <h3>Marca super-representada vaza para onde não deve</h3>
+    <p>A <code>cbf</code> tinha 65 referências, mais que qualquer outra. Resultado: quase todo top-25 era cbf, e a <strong>bandeira do Brasil era aceita como cbf</strong> com pontuação 0,44. O escudo tem um círculo azul com estrelas sobre verde e amarelo, e o consenso chegava a 1,00 em cima de similaridade 0,75. Isso forçou duas mudanças: consenso sem similaridade mínima não vale, e consenso não resgata região abaixo do limiar de rejeição. Mas a lição operacional é anterior: desconfie de marca com muitas referências.</p>
+
+    <h3>Quase-cópias deslocam o vizinho útil</h3>
+    <p>Trinta fotos do mesmo ângulo são um vetor. Elas não acrescentam cobertura, ocupam o topo da busca com cópias e <strong>deslocam do top-k o vizinho que alimentaria o consenso</strong>. A construção do banco deduplica dentro de cada marca, e nunca entre marcas, porque duas marcas parecidas acima do limiar são exatamente o que a auditoria precisa enxergar.</p>
+
+    <h3>Trocar o codificador invalida tudo, e metade disso falha em silêncio</h3>
+    <p>O índice guarda a assinatura do codificador e recusa a combinação errada na carga. Mas os limiares de similaridade não têm essa proteção: <code>min_similarity</code>, <code>redundancy_similarity</code>, <code>alert_similarity</code>, <code>entry_similarity</code>, <code>orphan_max_similarity</code> vivem todos na escala do codificador. Quando o projeto trocou DINOv2 por SigLIP2, o limiar de deduplicação ficou em 0,95 e <strong>cortou o banco de 753 para 524 referências antes de alguém notar</strong>. O que era "quase cópia" numa escala é "mesma marca, outra foto" na outra. A <code>amazon</code> caiu de 26 para 3 referências.</p>
+
+    <h3>Promover a partir da imagem de avaliação fabrica métrica</h3>
+    <p>O loop de melhoria é promover órfãos para o banco. Mas se a imagem usada para medir entra no banco que será medido, o sistema passa a reconhecer um recorte de si mesmo, e todo número produzido depois é ficção. Por isso a ferramenta de garimpagem tem <code>--excluir</code> e registra no log o que foi excluído. E nada entra sozinho: medido, das 20 candidatas com similaridade acima de 0,82, só <strong>11 eram a marca certa</strong>. <code>itau</code> lido como <code>sadia</code>, um político lido como <code>vivo</code>, um apresentador lido como <code>uber</code>.</p>
+
+    <div class="callout">
+      <span class="label">O que eu faria desde o primeiro dia</span>
+      <ul>
+        <li>Rodar a auditoria do banco contra ele mesmo depois de <em>cada</em> mudança. Cada par de marcas diferentes acima do limiar de alerta é um falso positivo agendado. Custa minutos agora e um relatório errado na mão de um cliente depois. O banco foi de 238 pares confundíveis para 32.</li>
+        <li>Guardar a assinatura do codificador junto dos limiares, não só do índice, e recusar operar com limiares de outra escala.</li>
+        <li>Tratar a fila de órfãos como a métrica de saúde do banco. Órfão recorrente da mesma marca é variante faltando, e é o sinal mais barato que o sistema produz.</li>
+        <li>Separar desde o início um conjunto de avaliação que nunca entra no banco, e deixar isso escrito onde todo mundo vê.</li>
+      </ul>
+    </div>
+
+    <h2>Por que não um banco vetorial de verdade</h2>
+    <p>Uma pergunta que sempre aparece. O banco é um <code>npz</code> com os vetores mais um <code>json</code> com os metadados, e a busca é uma multiplicação de matriz. Dezenas de marcas com algumas dezenas de referências cada dão milhares de vetores, e a consulta leva milissegundos. Banco vetorial passa a valer a partir de centenas de milhares de vetores; antes disso ele acrescenta um serviço para operar, um processo para subir e um estado a mais para dessincronizar. E o <code>json</code> é auditável com um editor de texto, o que importa muito quando a pergunta é "por que esta referência está puxando falso positivo?".</p>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>Separar onde de quem é o que permite marca nova sem retreino. O detector não conhece nome de marca, por construção.</li>
+      <li>Cada camada é mais cara que a anterior e só vê o que ela deixou passar: 0,7 s por imagem em vez de 3,0 s.</li>
+      <li>O codificador é a escolha que mais importa, e só a medição na população real decide. DINOv2 era moeda; SigLIP2 base com pooling foi o único que subiu no banco construído.</li>
+      <li>Consenso ganha de similaridade absoluta. A geometria só soma. A ordem das regras do roteador é o produto.</li>
+      <li>O banco é o componente que mais determina o resultado e o que mais se deteriora em silêncio: variante faltando, enquadramento na placa, alpha descartado, super-representação, quase-cópias, limiares de outra escala, avaliação contaminada.</li>
+      <li>Auditar depois de cada mudança e promover órfãos com conferência humana é o que mantém o sistema melhorando em vez de apodrecendo.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

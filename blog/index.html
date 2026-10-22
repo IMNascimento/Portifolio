@@ -1,113 +1,84 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Dicas Internas - Blog</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="stylesheet" href="./assets/style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blog | Igor Nascimento</title>
+  <meta name="description" content="Notas de engenharia sobre arquitetura de software e IA aplicada: decisões, trade-offs e o que aprendi colocando sistemas em produção." />
+  <link rel="icon" type="image/png" href="../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./assets/blog.css" />
 </head>
 <body>
- <header class="hero">
-    <div class="hero-content">
-        <div class="hero-text">
-        <h1>Blog de Tecnologia, Programação & IA</h1>
-        <p>
-          Dicas práticas, tendências e conteúdos para acelerar seu aprendizado e evoluir como desenvolvedor.<br>
-            Tudo sobre tecnologia, programação e inteligência artificial em um só lugar.
-        </p>
-        <a href="https://imnascimento.github.io/Portifolio/" class="cta cta-vermelho">Ver Portfólio</a>
-        </div>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="./index.html"><img src="../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        
+        <a class="btn btn--dark" href="../index.html"><span>Portfólio</span></a>
+      </nav>
     </div>
-    </header>
-  <main>
-    <section class="dicas" id="dicas">
-      <h2 class="section-title">Dicas e Tópicos</h2>
-      <div class="cards">
-        <a href="pages/dica_clean_architeture.html" class="card">
-            <div class="card-icon">
-                <!-- SVG: círculos concêntricos para simbolizar o core e camadas do Clean Architecture -->
-                <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-                <rect width="36" height="36" rx="12" fill="#e3eafc"/>
-                <circle cx="18" cy="18" r="9" fill="#fff" stroke="#1976d2" stroke-width="2"/>
-                <circle cx="18" cy="18" r="6" fill="#e3eafc" stroke="#1976d2" stroke-width="1.5"/>
-                <circle cx="18" cy="18" r="3" fill="#1976d2"/>
-                </svg>
-            </div>
-            <div class="card-content">
-                <strong>Checklist Clean Architecture</strong>
-                <span>Passos práticos para estruturar sistemas escaláveis, claros e sem retrabalho.</span>
-            </div>
-            </a>
-        <a href="pages/dica_hexagonal_architeture.html" class="card">
-            <div class="card-icon">
-                <!-- SVG: hexágono e símbolo plugando (porta e adaptador) -->
-                <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-                <rect width="36" height="36" rx="12" fill="#e3fcf4"/>
-                <polygon points="18,8 27,14 27,24 18,30 9,24 9,14" stroke="#009688" stroke-width="2" fill="#e0fcf7"/>
-                <circle cx="18" cy="19" r="4" stroke="#009688" stroke-width="2" fill="#fff"/>
-                <path d="M18 23v3M16 19h-3M20 19h3" stroke="#009688" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="card-content">
-                <strong>Checklist Hexagonal Architecture</strong>
-                <span>Organize seu sistema usando Ports & Adapters para máximo desacoplamento e clareza.</span>
-            </div>
-            </a>
-        <a href="./pages/LLM_not_resolve.html" class="card">
-          <div class="card-icon">
-            <!-- Ícone de robô SVG estilizado -->
-            <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-              <rect width="36" height="36" rx="12" fill="#e0f7fa"/>
-              <g>
-                <circle cx="18" cy="18" r="9" fill="#fff" stroke="#00bcd4" stroke-width="2"/>
-                <rect x="12" y="20" width="12" height="4" rx="2" fill="#b2ebf2"/>
-                <circle cx="15" cy="17" r="1.5" fill="#00bcd4"/>
-                <circle cx="21" cy="17" r="1.5" fill="#00bcd4"/>
-                <rect x="16" y="21" width="4" height="1.5" rx="0.75" fill="#0097a7"/>
-              </g>
-            </svg>
-          </div>
-          <div class="card-content">
-            <strong>LLM: Nem Sempre a Solução</strong>
-            <span>Descubra por que modelos de linguagem não resolvem tudo e como ir além do hype para criar soluções reais com IA.</span>
-          </div>
+  </header>
+  <section class="hero">
+    <div class="hero__inner">
+      <span class="eyebrow">Notas de engenharia</span>
+      <h1>Decisões, trade-offs e o que sobra depois que o sistema vai para produção.</h1>
+      <p>Não é um blog de tutoriais. É o lugar onde escrevo sobre as escolhas que aparecem no dia a dia de quem desenha e sustenta sistemas: arquitetura, dados, modelos de IA e o custo real de cada caminho. Cada texto parte de um problema que enfrentei e discute as alternativas como numa conversa entre engenheiros, com os prós, os contras e o que eu faria diferente.</p>
+      <div class="actions"><a class="btn btn--accent" href="#artigos">Ler os artigos</a><a class="btn btn--dark" href="../index.html">Conhecer o portfólio</a></div>
+    </div>
+  </section>
+  <main class="posts" id="artigos">
+    <div class="posts__inner">
+      <h2>Artigos</h2>
+      <p>Seis conversas até agora, em três frentes: como organizar código que precisa durar, como colocar IA em produção sem se enganar sobre o que ela faz, e dois projetos abertos dissecados decisão por decisão.</p>
+      <div class="grid">
+        <a class="post-card" href="pages/dica_clean_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
         </a>
-        <a href="./pages/attention.html" class="card">
-          <div class="card-icon">
-            <!-- Ícone SVG estilizado de olho (atenção) -->
-            <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-              <rect width="36" height="36" rx="12" fill="#e0f7fa"/>
-              <ellipse cx="18" cy="18" rx="10" ry="8" fill="#fff"/>
-              <ellipse cx="18" cy="18" rx="5" ry="4" fill="#00bcd4"/>
-            </svg>
-          </div>
-          <div class="card-content">
-            <strong>Camada de Atenção</strong>
-            <span>Entenda o mecanismo que revolucionou os Transformers e o NLP moderno.</span>
-          </div>
+<a class="post-card" href="pages/dica_hexagonal_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
         </a>
-        <!-- Adicione mais cards conforme desejar -->
+<a class="post-card" href="pages/LLM_not_resolve.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/attention.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/stratosphere.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>18 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/photonprotocol.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
       </div>
-    </section>
+    </div>
   </main>
-   <footer>
-    Desenvolvido por
-    <a href="https://www.linkedin.com/in/igor-m-nascimento/" target="_blank" class="footer-link">Igor Nascimento</a>
-    -
-    <span id="ano-atual"></span>
-    <span class="footer-sep">|</span>
-    <span class="footer-brand">
-      <span class="copyright-symbol">&copy;</span>
-      <a href="https://sophialabs.com.br" target="_blank" class="brand-link">SophiaLabs</a>
-    </span>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
   </footer>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const yearSpan = document.getElementById('ano-atual');
-      if(yearSpan) {
-        yearSpan.textContent = new Date().getFullYear();
-      }
-    });
-  </script>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
 </html>

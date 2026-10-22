@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo | Blog Igor Nascimento</title>
+  <meta name="description" content="Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Protocolos</span>
+      <h1>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h1>
+      <p class="standfirst">Uma tela pinta códigos, um celular filma, o arquivo chega com o hash conferido. Sem rede, sem cabo, sem pareamento. Uma conversa sobre um canal que não tem volta, sobre um simulador que foi gentil demais, sobre a decisão de uma linha que impediu qualquer transferência real, e sobre o formato denso que nasceu de ouvir o que o telefone mostrou.</p>
+      <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O problema, e a restrição da qual tudo decorre</h2>
+    <p>Mover um arquivo de um aparelho para outro com nada além de uma tela e uma câmera. Sem rede, sem cabo, sem pareamento, sem conta, sem servidor. Um lado pinta o arquivo como uma sequência de códigos visuais densos; o outro aponta a câmera; um decodificador transforma as fotos de volta em bytes e confere contra um SHA-256. É o <a href="https://github.com/IMNascimento/PhotonProtocol" target="_blank" rel="noopener">PhotonProtocol</a>, e este texto é sobre o que aconteceu entre a especificação e o primeiro arquivo que de fato chegou a um celular.</p>
+    <p>A restrição que define o projeto inteiro é uma só: <strong>o canal é simplex</strong>. O emissor nunca ouve o receptor. Não sabe quando a gravação começou, não sabe quais quadros sobreviveram, não pode retransmitir sob demanda. Cada decisão do formato decorre disso:</p>
+    <ul>
+      <li>O emissor não transmite o arquivo uma vez. Transmite um <strong>fluxo infinito de fragmentos com código fountain</strong> (RaptorQ, RFC 6330), em que qualquer subconjunto grande o bastante reconstrói o todo. Quadros perdidos por borrão, reflexo ou mão trêmula custam tempo, nunca correção.</li>
+      <li>O manifesto, que diz o tamanho, o hash e os parâmetros do objeto, tem que chegar antes de qualquer byte significar algo. Então ele é repetido: em pelo menos um quadro a cada oito.</li>
+      <li>Nenhuma camada intermediária garante correção. Reed-Solomon, CRCs e o próprio RaptorQ protegem <em>throughput</em>. <strong>Só o SHA-256 no fim protege correção</strong>, e o decodificador não entrega o arquivo se ele falhar.</li>
+      <li>O emissor não enxerga a câmera que o filma. Um código denso demais para ela parece, para quem envia, exatamente igual a um que não é. O único sintoma é um receptor que nunca termina. Por isso o perfil padrão é o mais conservador.</li>
+    </ul>
+
+    <h2>O formato em uma passada</h2>
+    <p>Um quadro é uma grade quadrada de células. Cada célula carrega uma <em>forma</em> (uma máscara 4x4 com exatamente 8 de 16 sub-células pintadas, para que toda forma tenha a mesma energia de cor) pintada numa <em>cor de tinta</em>. Quatro a seis bits por célula, conforme o perfil. Em volta da carga útil ficam as estruturas que tornam o quadro legível: quatro padrões de busca nos cantos (o clássico 1:1:3:1:1 do QR, invariante sob perspectiva), uma marca de orientação, um anel de temporização, um anel de calibração, um marcador central e duas faixas de cabeçalho.</p>
+    <p>Duas dessas estruturas carregam ideias que valem a conversa.</p>
+    <p><strong>O anel de calibração.</strong> Balanço de branco, exposição e matriz de cor de uma câmera derivam continuamente e nunca são informados ao emissor. Então o decodificador <strong>não classifica células contra a paleta impressa na especificação</strong>. Ele classifica contra referências medidas <em>no mesmo quadro</em>: o anel carrega uma amostra rotulada de todo símbolo do alfabeto, distribuída pelo perímetro inteiro. Na primeira fase, um desvio forte de cor sem nenhum outro defeito custou zero erros no perfil de paleta mais apertada. O anel paga o próprio custo.</p>
+    <p><strong>O cabeçalho em preto e branco, duas vezes.</strong> O cabeçalho é quem declara o perfil, então precisa ser legível sem conhecer o perfil. Ele usa um bit por célula em preenchimento sólido, muito mais robusto que os bits de forma e cor da carga útil, e é duplicado em bordas opostas porque é o ponto único de falha do quadro: um reflexo ou um dedo que apague o topo custaria o quadro inteiro.</p>
+    <div class="callout">
+      <span class="label">Trade-off</span>
+      <p>Os perfis trocam densidade por robustez, e as taxas de paridade correm <em>ao contrário</em> da intuição: o perfil conservador gasta mais do seu quadro menor em paridade (31%) que o denso (12,5%). Um perfil não é um botão de densidade; é um ponto numa curva de robustez. O <code>P1-conservative</code> existe para sobreviver a uma mão trêmula, uma tela fraca e uma câmera barata, condições em que o <code>P3-dense</code> não decodifica nada.</p>
+    </div>
+
+    <h2>Fase 1: um simulador que mede, e o que ele não viu</h2>
+    <p>Antes de qualquer câmera real, a camada física foi medida contra um canal sintético com <em>ground truth</em> dos dois lados, para que um resultado pudesse ser atribuído ao classificador e não à correção de erro escondendo o estrago. Uma escada de severidade move perspectiva, reamostragem, borrão, balanço de branco, reflexo, ruído e quantização juntos, porque condições reais não degradam uma de cada vez.</p>
+    <p>Três achados dessa fase valem registro, e o primeiro é negativo. <strong>A margem de confiança do classificador não rastreia o erro.</strong> Decodificação por apagamento repara o dobro de bytes que decodificação por erro, e a especificação a recomendava. Mas, na faixa de severidade que decide se uma transferência funciona, a margem (vizinho mais próximo contra o segundo) sinalizava só 8% a 26% das células realmente erradas. O caminho de apagamento era complexidade que comprava quase nada. O segundo: <strong>a falha é um penhasco, não uma rampa</strong>. Todo perfil vai de zero erro a bem acima do orçamento em dois degraus. Bom para interface (não há meio-termo de "meio funcionou"), ruim como aviso prévio.</p>
+    <p>O terceiro é um bug que generaliza. Uma sequência de pixels cobrindo <code>[início, início+len)</code> tem centro em <code>início + (len-1)/2</code>; usar <code>len/2</code> coloca toda medida meio pixel atrasada. São 0,08 célula a seis pixels por módulo, invisível a qualquer tolerância, uniforme nos quatro cantos, e suficiente para arrastar cada amostra um terço de sub-célula em direção ao vizinho. Foi o segundo erro de meio pixel do projeto. Os dois vieram da mesma confusão entre a extensão de um pixel e o centro dele, e <strong>nenhum foi pego por ida e volta, porque os dois lados de uma ida e volta podem compartilhar a convenção e ainda estar errados</strong>. Pelo mesmo motivo, o módulo de alinhamento foi renderizado uma célula fora do lugar por uma versão inteira: codificador e decodificador partilhavam o erro, e só uma implementação de terceiros teria notado.</p>
+
+    <h2>Fase 2: nenhuma transferência real funcionou, e a causa era uma linha</h2>
+    <p>Toda tentativa de mover um arquivo de um monitor para um celular falhou. O telefone achava o código, lia o cabeçalho, e não lia as células. Toda foto, toda vez. O modelo da fase 1 dizia que aqueles quadros deviam decodificar com folga.</p>
+    <p>A resposta foi construir um simulador <strong>duro o bastante para discordar da fase 1 e concordar com os telefones</strong>. O <code>photon film</code> modela uma câmera de celular apontada para um monitor, com o display e a câmera em relógios separados: obturador rolante, varredura e tempo de resposta do painel, pose e tremor de mão, distorção radial da lente, borrão, luz difusa, matriz de filtro de cor e demosaico, exposição, balanço de branco, nitidez artificial, 4:2:0, cintilação de backlight. A saída é um vídeo que o Chrome aceita como câmera, e os testes de ponta a ponta abrem a página receptora real com essa filmagem. O modelo reproduziu a falha relatada <strong>exatamente, estágio por estágio</strong>: 755 fotos, código localizado em todas, cabeçalho lido em todas, nenhuma carga útil.</p>
+    <p>Comparando com o que foi enviado: 9,30% das células erradas, das quais 9,29% erraram a forma e 0,04% a cor. Por cor pintada: vermelho 10%, verde 0%, <strong>azul 27%</strong>, branco 0%. A cor era lida quase perfeitamente; a forma não; e quais formas falhavam dependia inteiramente da tinta.</p>
+    <p>O classificador decidia a forma primeiro, pelo <strong>luma</strong>, e a cor depois. O azul da paleta tem 0,26 do luma do branco. Através de qualquer lente que borre, os vizinhos claros de uma célula espalham luz na metade não pintada dela; para uma célula azul ao lado de uma branca, o que entra é tão claro em luma quanto a própria tinta, e a metade mais clara da célula passa a ser a errada.</p>
+    <div class="callout callout--dark">
+      <span class="label">Por que a fase 1 não viu</span>
+      <p>Uma célula de 4 bits não cruza fronteira de byte, então 9,3% de células erradas são 17,7% de bytes errados, contra um raio de correção de 15,7%. Todo quadro ficava um pouco acima. A tabela da fase 1 tinha o perfil conservador lendo 6,9% de células erradas e marcava isso como dentro do orçamento. <strong>O orçamento era em bytes e a medição em células.</strong> Um byte daquele perfil são duas células: 6,9% de células são 13,3% de bytes, dentro, mas na borda, num quadro de quinze palavras-código que todas precisam decodificar. E a fase 1 nunca perguntou <em>quais</em> células erravam, que é a pergunta que entrega a falha.</p>
+    </div>
+    <p>A correção: a célula é casada <strong>inteira</strong>, dezesseis sub-células em três canais, contra um template de cada símbolo medido no anel de calibração do próprio quadro, e depois casada de novo contra templates medidos da própria carga útil, onde há vinte vezes mais evidência e os vizinhos são iguais aos da célula sendo lida. Células erradas nas mesmas capturas: 9,30% para 0,06%.</p>
+    <p>Outros quatro achados da fase 2 mudaram a especificação e a página:</p>
+    <ul>
+      <li><strong>Um finder fotografado não mede 1:1:3:1:1.</strong> Luz se espalha no escuro, então cada anel escuro sai mais fino e cada claro mais largo; mediu-se perto de 0,6:1,4:2,6:1,4:0,6. O meio de um anel não se move. Os candidatos passaram a ser julgados por onde caem os meios.</li>
+      <li><strong>Um refresh não é um sexagésimo de segundo.</strong> A página segurava cada código por quatro refreshes: 67 ms a 60 Hz, 28 ms a 144 Hz, e uma foto de celular na vertical abrange 40 a 60 ms do tempo do display. Agora a página mede o display e trabalha em códigos por segundo.</li>
+      <li><strong>Throughput é fotos lidas por segundo.</strong> Um celular que lê três fotos por segundo lê três códigos por segundo, não importa o que o emissor mostre. Ler uma foto caiu de 50 ms para 15 ms num núcleo de desktop: busca em brilho de 8 bits a meia resolução, amostragem em ponto fixo, e um código já lido é descartado no cabeçalho, antes de pagar o resto. A página pedia 4K à câmera e passou a pedir 1080p.</li>
+      <li><strong>A escada de perfis foi cortada para 4K, e o navegador recebe 1080p.</strong> O alfabeto de 8 formas precisa de 8 pixels de câmera por célula; o de 4 formas, de 6. A 1080p só o conservador lia, e a página escolhia o perfil mais denso <em>que a tela podia pintar</em>, que é a pergunta errada. Nasceu o <code>P4-balanced</code>: alfabeto e paridade do conservador na grade do padrão, 4931 bytes por quadro contra 2611.</li>
+    </ul>
+
+    <h2>O telefone de verdade</h2>
+    <p>Depois de tudo isso, um iPhone no Safari, apontado à mão para um monitor 1080p: <strong>o <code>P1-conservative</code> transferiu uma imagem de 818 KB em 34 segundos a 10 códigos por segundo (23,7 KB/s) e em 21 segundos a 20 (38,2 KB/s)</strong>, com o hash conferido. O telefone leu 29 fotos por segundo, 92% daquelas em que achou o código.</p>
+    <p>Os três perfis mais densos não decodificaram uma foto sequer. A tabela do simulador dizia que o <code>P4-balanced</code> devia ler com folga. As fotos foram guardadas e comparadas com o que foi pintado: as células estão erradas <strong>no meio do código e certas nas bordas</strong>. Medido bloco a bloco, o interior fica até 0,3 célula fora de onde a homografia dos quatro cantos o coloca, num campo que é zero no perímetro e no centro e máximo entre eles, apontando para dentro. A correção de lente da fase 2 media o perímetro e misturava para dentro; ela não segue esse campo e o piora.</p>
+    <div class="callout">
+      <span class="label">O modelo era gentil onde doía</span>
+      <p>O simulador dobrava a imagem em torno do centro da lente, que é onde o código está, e portanto dobrava o código quase nada. A correção de lente foi testada contra uma distorção que ela trata, e a linha da tabela que diz que funciona é um teste do modelo. A pergunta aberta Q4 da especificação, "precisa de uma malha de marcas de alinhamento?", tinha sido respondida com "não" depois da simulação. A resposta estava errada. O conservador tem células grandes o bastante para serem lidas 0,3 célula fora. Os outros não.</p>
+    </div>
+
+    <h2>Fase 3 e o branch <code>experiment/throughput</code>: um formato para a câmera que existe</h2>
+    <p>Com 128 fotos do iPhone e, para cada célula, o que foi pintado e o que foi visto, dava para ouvir o telefone com atenção. Ele disse quatro coisas. A grade está fora no meio e em nenhum outro lugar. O anel de calibração não se parece com a carga útil, porque corre ao lado da margem branca e a luz dela invade os templates. Preto é um quinto de branco, e não o mesmo quinto em toda a foto (95 e 205 de 255, e a parte de baixo da tela mais lavada que a de cima). E <strong>brilho é nítido e cor não é</strong>: uma borda preto-branco sobe em 1,6 a 2,7 pixels, uma borda de cor leva o dobro. Com o template exato de cada símbolo em mãos, ainda assim 7% a 10% das células do <code>P4-balanced</code> estavam erradas, quase todas em cor. A forma sozinha errava 0,4% a 3%.</p>
+    <p>As três primeiras foram corrigidas no decodificador dos quadros de células: grade medida pelas bordas das próprias células (a fase das bordas em blocos de 8x8, desdobrada do perímetro para dentro), alfabeto aprendido da própria carga útil, preto e branco por vizinhança. De 33 fotos do <code>P4-balanced</code> que o iPhone tirou e nenhum decodificador lia, 15 passaram a ler. A quarta não tem conserto em decodificador, e é por isso que existe o formato denso. Três decisões, cada uma a leitura literal de algo acima:</p>
+    <ol>
+      <li><strong>Preto e branco.</strong> Um módulo é um bit. Uma célula que gasta sua área em cor gasta no que a câmera vê pior. A 3 pixels de câmera por módulo, um quadro do formato da tela tem 600 por 336 módulos.</li>
+      <li><strong>Tiles.</strong> O quadro é cortado em até 56 tiles, cada um com suas palavras-código, seu checksum e a anotação de qual código ele pertence. Uma foto tirada enquanto o código muda rende os tiles que pegou inteiros. O quadro de células perdia a foto inteira nesse caso, porque entrelaçava as palavras-código pelo quadro todo.</li>
+      <li><strong>Uma marca em cada tile</strong>, encontrada diretamente, com as bordas dos módulos para o que fica entre as marcas. É a resposta à grade fora no meio.</li>
+    </ol>
+    <p>Há uma mudança de formato que acompanha isso e que quebra compatibilidade com o rascunho anterior: <strong>os bytes são branqueados</strong> (XOR com uma sequência xorshift fixa) antes de pintar. Um arquivo que comprime bem termina num quadro que é quase todo padding, e um quadro de zeros é uma célula repetida: não tem branco, tem poucas bordas e uma tinta só. Um decodificador que mede o quadro pelo que há nele não tem o que medir. Branqueado, todo quadro tem todo símbolo mais ou menos na mesma frequência, seja o que for que carregue.</p>
+
+    <h3>O que ler o formato denso exigiu</h3>
+    <p>Na ordem em que foi descoberto, contra o simulador no ajuste <code>typical</code>, com <code>D3-blaze</code> a 2,5 pixels de câmera por módulo e 30 códigos por segundo:</p>
+    <ul>
+      <li><strong>Nada lia.</strong> Cada módulo comparado com o meio entre o preto e o branco da vizinhança: 6,5% de módulos errados na foto mediana e nenhum tile em 3304 ao alcance da paridade. Um módulo branco isolado entre pretos é cinza.</li>
+      <li><strong>O canal removido: 68% dos tiles.</strong> O que a lente e o sensor fazem a um módulo é igual para todo módulo de um tile, e um tile tem 3536 deles para medir isso. Medem-se nove coeficientes por mínimos quadrados, contra o que os módulos são tomados como sendo numa primeira leitura, e cada módulo é então decidido com a luz dos vizinhos subtraída. Por tile, e não por quadro, porque os coeficientes também absorvem o que sobrou da grade fora do lugar: uma grade um quinto de módulo à esquerda é um canal com mais do vizinho da direita.</li>
+      <li><strong>Em luz: 80%.</strong> O mesmo, com os números da câmera elevados a 2,2 primeiro. Uma lente soma luz. Ela não soma os números em que a luz é anotada.</li>
+      <li><strong>O código sob o código.</strong> A 30 códigos por segundo, um quinto dos tiles de uma foto tem a luz de dois códigos; a 60, a maioria. Nenhum lê da soma. Mas, uma vez lido um tile, o que ele pintou é conhecido exatamente: é ajustado ao que foi visto e subtraído, e o resto é lido como um tile de outro código. O que foi visto de um tile que não leu é guardado, e recebe o mesmo tratamento quando uma foto antes ou depois entregou o código que estava nele.</li>
+      <li><strong>Dobrado pela lente.</strong> Com linhas dobradas 4%, nenhuma marca era encontrada: a homografia está certa nos cantos e quatro módulos fora no meio. As marcas passaram a ser procuradas dos cantos para dentro, cada uma onde as já encontradas dizem que ela estará, e a grade fica presa nos quatro finders. Uma mediana sobre blocos vizinhos, adicionada para desempatar um bloco medido errado, achatava a inclinação e empurrava blocos certos um módulo inteiro na borda do quadro. Foi tirada; cada bloco é comparado com a reta pelos vizinhos, não com o meio deles.</li>
+    </ul>
+
+    <h3>Os números, e por que ainda não são uma comparação</h3>
+    <p>Através da câmera simulada, um mebibyte de bytes incompressíveis chega em <strong>2,14 segundos a 30 fotos por segundo (479 KB/s)</strong> e em <strong>1,15 segundo a 60 (888 KB/s)</strong>. Através da página receptora real no Chrome, com essa filmagem como câmera, em 2,2 segundos. O <a href="https://github.com/bashalarmistalt/decimen-optical-transfer" target="_blank" rel="noopener">Decimen</a>, cujo recorde este branch saiu para bater, moveu um mebibyte entre um monitor de 49 polegadas e um iPhone em 2,45 segundos.</p>
+    <p>O repositório diz com todas as letras que <strong>esses não são o mesmo tipo de número</strong>. O deles é dois aparelhos numa sala. O nosso é um modelo de câmera que já errou antes na direção que lisonjeia: disse que os perfis densos da fase 2 liam, e o telefone disse que não. O que a tabela mostra é que o formato e o decodificador têm a capacidade. Se um telefone tem, só o telefone dirá, e a linha da tabela de benchmarks que vai decidir isso está explicitamente vazia.</p>
+
+    <h2>Os trade-offs do formato denso, ditos antes que alguém descubra</h2>
+    <ul>
+      <li><strong>Superexposição mata.</strong> Com o branco uma vez e meia mais claro do que o sensor consegue medir, o <code>D3-blaze</code> cai de 475 para 165 KB/s. Um módulo escuro entre claros fica tão branco quanto eles, e nada que leia a foto depois pode saber que ele estava lá. As fotos do iPhone não estavam superexpostas, mas é uma condição de ambiente, não de código.</li>
+      <li><strong>A câmera ruim não lê nada do <code>D3-blaze</code>.</strong> O <code>D1-swift</code> existe para ela, a 150 KB/s, que ainda é quatro vezes o melhor do formato de células.</li>
+      <li><strong>Precisa de 2,5 pixels de câmera por módulo.</strong> A 1080p isso é um código ocupando quatro quintos da largura da foto, com o celular deitado. É uma exigência de uso, não de software.</li>
+      <li><strong>Brotli em vez de Zstandard.</strong> Decisão sobre onde o protocolo roda, não sobre compressão: as duas páginas executam como WebAssembly, a referência do Zstandard é C e exigiria toolchain C para Wasm em todo contribuidor e toda CI. Brotli tem implementação madura em Rust puro, e ainda comprimiu 8% melhor no corpus testado. O tempo de compressão não importa aqui: o canal é muito mais lento que o compressor.</li>
+      <li><strong>Integridade, não confidencialidade.</strong> O canal é uma tela numa sala. Quem vê pode gravar, e quem grava pode decodificar. É o ponto do projeto. Qualquer coisa sensível precisa ser cifrada antes.</li>
+      <li><strong>O rascunho 0.3 não lê o 0.2.</strong> Branqueamento muda o que é pintado. Enquanto a especificação não for marcada 1.0, rascunhos não interoperam, e o projeto diz isso na primeira linha do SPEC.</li>
+    </ul>
+
+    <h2>O que eu levo deste projeto para qualquer outro</h2>
+    <p><strong>Um modelo que não reproduz a falha não serve para corrigi-la.</strong> A fase 1 tinha um simulador, era determinístico, tinha testes, e descreveu um sistema que não existia. O que destravou o projeto foi tornar o modelo duro o suficiente para falhar como os telefones falhavam, e só então olhar <em>quais</em> células erravam.</p>
+    <p><strong>Medir a coisa certa na unidade certa.</strong> Orçamento em bytes, medição em células: o quadro estava "dentro" e falhava. É o mesmo tipo de erro de medir um codificador em imagem crua quando a pipeline alimenta recorte com letterbox, que discuti no texto sobre o Stratosphere.</p>
+    <p><strong>Ida e volta não pega erro compartilhado.</strong> Dois erros de meio pixel e um módulo de alinhamento fora do lugar passaram por todos os testes porque codificador e decodificador concordavam entre si. A especificação carrega vetores de teste justamente para que uma segunda implementação possa provar compatibilidade sem ler uma linha de Rust.</p>
+    <p><strong>Duas regras do repositório que eu adotaria em qualquer sistema com formato de arquivo ou de rede:</strong> nenhuma mudança no wire format sem atualizar a especificação no mesmo commit, e nenhuma otimização sem benchmark mostrando o ganho. As perguntas abertas da especificação estão abertas porque devem ser resolvidas por medição, e um argumento não é uma medição.</p>
+    <div class="callout callout--dark">
+      <span class="label">O que eu faria diferente</span>
+      <p>Apontaria um celular real para a tela no primeiro dia em que houvesse algo para pintar, antes de qualquer simulador. O simulador acabou sendo indispensável, mas a ordem certa é: a realidade mostra a falha, o modelo aprende a reproduzi-la, e só então o modelo ganha o direito de prever. Na ordem inversa, o modelo descreve o que a gente gostaria que acontecesse.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>Canal simplex: código fountain, manifesto redundante, hash fim a fim, perfil conservador por padrão. Tudo decorre de não haver volta.</li>
+      <li>O anel de calibração é a ideia que sustenta o formato: classificar contra o que a própria câmera fez no próprio quadro.</li>
+      <li>Nenhuma transferência real funcionou por causa de uma decisão: forma pelo luma, e azul não tem luma de sobra. 9,3% para 0,06% de células erradas ao casar a célula inteira, em cor.</li>
+      <li>O telefone mostrou o que o modelo não dobrava: o meio do código. E mostrou que câmera resolve brilho, não cor.</li>
+      <li>O formato denso é a leitura literal disso: preto e branco, tiles com identidade própria, marca em cada tile, canal subtraído por tile, código sob o código. 479 KB/s simulado a 30 fotos por segundo, 888 a 60. Ainda sem telefone real, e dito assim.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>18 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

@@ -1,268 +1,137 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Checklist Clean Architecture para Líderes Técnicos</title>
-  <link rel="stylesheet" href="./../assets/pages.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clean Architecture: onde ela paga a conta e onde só adiciona pasta | Blog Igor Nascimento</title>
+  <meta name="description" content="Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
 </head>
 <body>
-  <!-- Botão de Voltar -->
-  <a href="javascript:history.back()" class="btn-voltar" title="Voltar">
-    <svg width="25" height="25" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="9" stroke="#00ffd0" stroke-width="2"/>
-      <polyline points="11.5,6 8,10 11.5,14" fill="none" stroke="#00ffd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </a>
-  
-  <header>
-    <span class="main-illustration">
-      <!-- SVG ilustrativo (o mesmo de antes) -->
-      <svg viewBox="0 0 120 120" fill="none">
-        <ellipse cx="60" cy="60" rx="58" ry="56" fill="#171a21" stroke="#00ffd0" stroke-width="2"/>
-        <g>
-          <rect x="24" y="40" width="72" height="34" rx="10" fill="#23272f" stroke="#00ffd0" stroke-width="1.5"/>
-          <rect x="33" y="48" width="55" height="8" rx="2.5" fill="#12151a"/>
-          <rect x="33" y="60" width="25" height="6" rx="2" fill="#12151a"/>
-          <rect x="63" y="60" width="25" height="6" rx="2" fill="#12151a"/>
-          <text x="38" y="54" fill="#00ffd0" font-size="5" font-family="monospace">&lt;code/&gt;</text>
-          <text x="40" y="65" fill="#00ffd0" font-size="5" font-family="monospace">AI+Eng</text>
-        </g>
-        <ellipse cx="60" cy="100" rx="20" ry="7" fill="none" stroke="#00ffd0" stroke-width="1"/>
-        <path d="M50 100 Q55 95 60 100 Q65 105 70 100" stroke="#00ffd0" stroke-width="1" fill="none"/>
-        <circle cx="94" cy="33" r="10" stroke="#00ffd0" stroke-width="1" fill="#23272f"/>
-        <rect x="92" y="28" width="4" height="10" rx="1" fill="#00ffd0"/>
-        <rect x="89" y="33" width="10" height="4" rx="1" fill="#00ffd0"/>
-      </svg>
-    </span>
-    <h1>Checklist Clean Architecture</h1>
-    <div class="subtitle">
-      <b>Passo a Passo Profissional</b> para você projetar sistemas escaláveis, claros e fáceis de evoluir.<br>
-      <span style="color:var(--accent)">Rápido. Visual. Sem refatoração.</span>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
     </div>
   </header>
-  <main>
-    <section class="checklist">
-      <!-- PASSO 1 -->
-      <div class="card">
-        <div class="step-num">1</div>
-        <h2>Liste os Fluxos Principais/Funcionalidades</h2>
-        <ul>
-          <li>Escreva, rapidamente, as principais funcionalidades do sistema (não se preocupe com telas ou detalhes).</li>
-          <li>
-            <b>Exemplos:</b>
-            <ul>
-              <li>Usuário cadastra operação financeira</li>
-              <li>Sistema executa grid na Binance</li>
-              <li>Sistema simula estratégia com histórico</li>
-              <li>Usuário consulta extrato/saldo</li>
-              <li>Robô executa ordem real</li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-      <!-- PASSO 2 -->
-      <div class="card">
-        <div class="step-num">2</div>
-        <h2>Identifique os Substantivos e Atores</h2>
-        <ul>
-          <li>Para cada fluxo, destaque <strong>substantivos</strong> (potenciais entidades do domínio).</li>
-          <li>Marque também os <strong>atores</strong> envolvidos (usuário, robô, admin, exchange, etc).</li>
-          <li>
-            <b>Exemplo de substantivos:</b>
-            <br>
-            Usuário, Conta, Operação, Ordem, Grid, Estratégia, Mercado, Preço, Histórico, Robô, Exchange, Saldo...
-          </li>
-        </ul>
-      </div>
-      <!-- PASSO 3 -->
-      <div class="card">
-        <div class="step-num">3</div>
-        <h2>Separe os Domínios Principais</h2>
-        <ul>
-          <li>Divida em <b>blocos de assunto próprio</b> (domínios), sem misturar conceitos diferentes.</li>
-          <li>
-            <b>Exemplos de domínios:</b>
-            <ul>
-              <li>user</li>
-              <li>account</li>
-              <li>operation</li>
-              <li>order</li>
-              <li>market_data</li>
-              <li>strategy</li>
-              <li>simulation</li>
-              <li>wallet</li>
-              <!-- etc -->
-            </ul>
-          </li>
-          <li>
-            <span style="color:#f87171"><b>Cuidado:</b> "operation" ≠ "order" ≠ "market_data"</span>
-          </li>
-        </ul>
-      </div>
-      <!-- PASSO 4 -->
-      <div class="card">
-        <div class="step-num">4</div>
-        <h2>Modele as Entidades principais</h2>
-        <ul>
-          <li>Modele apenas as <b>principais entidades</b>, listando nome, campos e sentido no negócio.</li>
-          <li>Não pense em implementação agora!</li>
-          <li>Use nomes claros e autoexplicativos.</li>
-        </ul>
-        <pre>
-class User:
-    id: str
-    name: str
-    email: str
-
-class Operation:
-    id: str
-    user_id: str
-    strategy: str
-    capital: float
-    status: str
-    created_at: datetime
-
-class Order:
-    id: str
-    operation_id: str
-    symbol: str
-    side: str  # buy/sell
-    qty: float
-    price: float
-    executed_at: datetime
-
-class PriceEntry:
-    id: str
-    symbol: str
-    timestamp: datetime
-    open: float
-    close: float
-    high: float
-    low: float
-    volume: float
-        </pre>
-      </div>
-      <!-- PASSO 5 -->
-      <div class="card">
-        <div class="step-num">5</div>
-        <h2>Defina os Casos de Uso ("use cases")</h2>
-        <ul>
-          <li>Liste as <b>ações importantes</b> do sistema. Cada ação principal vira um caso de uso.</li>
-          <li>
-            <b>Exemplos:</b>
-            <ul>
-              <li>SimulateGridStrategyCommand</li>
-              <li>CreateOrderCommand</li>
-              <li>GetAccountBalanceQuery</li>
-              <li>RunTradingBotCommand</li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-      <!-- PASSO 6 -->
-      <div class="card">
-        <div class="step-num">6</div>
-        <h2>Pense nos Limites de Integração</h2>
-        <ul>
-          <li>Marque tudo que depende de API externa, banco de dados, microserviços, etc.</li>
-          <li>
-            <b>Exemplos:</b> Binance API, serviços de broker, storage, etc.
-          </li>
-        </ul>
-      </div>
-      <!-- PASSO 7 -->
-      <div class="card">
-        <div class="step-num">7</div>
-        <h2>Crie a Estrutura de Pastas</h2>
-        <ul>
-          <li>Monte as pastas para cada domínio principal, já pensando em crescimento.</li>
-        </ul>
-        <div class="folder-structure">
-src/
-  domain/
-    user/
-      entities/
-      repositories/
-      strategies/
-    operation/
-      entities/
-      repositories/
-      strategies/
-    market_data/
-      entities/
-      repositories/
-    ...
-  application/
-    user/
-      commands/
-      queries/
-      dtos/
-    operation/
-      commands/
-      queries/
-      dtos/
-    market_data/
-      commands/
-      queries/
-      dtos/
-  infrastructure/
-    user/
-    operation/
-    market_data/
-    ...
-  shared/
-    logging/
-    utils/
-    ...
-  api/
-    routers/
-    schemas/
-    ...
-        </div>
-      </div>
-    </section>
-
- <div class="tips">
-      <b>Dicas de Ouro:</b>
-      <ul>
-        <li>Não invente nomes: use o vocabulário do negócio!</li>
-        <li>Revise nomes com alguém do negócio. Consulte docs e open-source se precisar.</li>
-        <li>Se um nome começar a "abranger tudo", provavelmente está ERRADO (ex: data, register, info).</li>
-        <li>Evite classes/tabelas com nome genérico: seja específico!</li>
-        <li>Errar um nome agora dói lá na frente. Siga o método e evite retrabalho!</li>
-      </ul>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Arquitetura</span>
+      <h1>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h1>
+      <p class="standfirst">Camadas não são o objetivo. O objetivo é conseguir trocar uma decisão sem reescrever o sistema. Uma conversa sobre quando esse seguro vale o prêmio, e quando você só está pagando por burocracia.</p>
+      <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
     </div>
-    <div class="summary-visual">
-      <div>✅ <strong>Liste funcionalidades principais</strong></div>
-      <div>🔎 <strong>Extraia substantivos e atores</strong></div>
-      <div>🗂️ <strong>Separe domínios de negócio</strong></div>
-      <div>📦 <strong>Modele entidades (nome + campos)</strong></div>
-      <div>🧠 <strong>Liste casos de uso</strong></div>
-      <div>🌐 <strong>Pense nas integrações externas</strong></div>
-      <div>📁 <strong>Monte estrutura já pensando em crescimento</strong></div>
-    </div>
-  </main>
- <footer>
-  Desenvolvido por
-  <a href="https://www.linkedin.com/in/igor-m-nascimento/" target="_blank">Igor Nascimento</a>
-  -
-  <span id="ano-atual"></span>
-  <span class="footer-sep">|</span>
-  <span class="footer-brand">
-    <span class="copyright-symbol">&copy;</span>
-    <a href="https://sophialabs.com.br" target="_blank" class="brand-link">SophiaLabs</a>
-  </span>
-</footer>
+  </section>
+  <article class="article">
 
+    <h2>Começando pela pergunta errada</h2>
+    <p>A pergunta que mais ouço sobre Clean Architecture é "quantas camadas eu preciso?". É a pergunta errada, e ela explica por que tanto projeto nasce com sete pastas vazias e morre com regra de negócio dentro do controller. Camada não é objetivo. Camada é um mecanismo para uma coisa só: conseguir trocar uma decisão sem reescrever o resto. Banco, framework web, fila, provedor de e-mail, a exchange que você consulta. Se nenhuma dessas decisões tem chance real de mudar, o mecanismo não paga o próprio custo.</p>
+    <p>Então a conversa que eu gosto de ter antes de abrir o editor é outra: <strong>quais decisões deste sistema eu quero poder reverter daqui a um ano?</strong> A resposta define onde vale colocar uma fronteira e onde um módulo simples resolve.</p>
+
+    <h2>O que estou de fato comprando</h2>
+    <p>Quando separo domínio, aplicação e infraestrutura, estou comprando três coisas concretas. Primeiro, <strong>testes que não precisam de banco nem de rede</strong>: o caso de uso recebe interfaces, então eu testo a regra com objetos em memória e deixo a integração para poucos testes mais lentos. Segundo, <strong>um vocabulário compartilhado</strong>: quando entidade, caso de uso e porta têm nome do negócio, a conversa com produto e dados fica mais curta. Terceiro, <strong>a possibilidade de trocar a borda</strong>: migrei um serviço de API REST para funções Lambda atrás de SQS sem tocar em nenhum caso de uso, porque a borda era só um adaptador.</p>
+    <p>E estou pagando com três coisas igualmente concretas. <strong>Mais arquivos por funcionalidade</strong>, o que torna o onboarding mais lento. <strong>Mapeamento entre DTOs, entidades e modelos de persistência</strong>, que é código chato e que erra em silêncio. E <strong>indireção</strong>: para achar onde uma query roda de verdade, o leitor atravessa uma interface e uma injeção de dependência.</p>
+
+    <div class="callout">
+      <span class="label">Trade-off</span>
+      <p>Se o sistema é um CRUD com meia dúzia de telas e um time pequeno, o custo de indireção supera o ganho. Nesses casos prefiro módulos por funcionalidade, com a regra de negócio isolada em funções puras, e deixo a arquitetura em camadas para quando aparecer a segunda integração externa ou o segundo canal de entrada. Arquitetura boa é a que você consegue adiar.</p>
+    </div>
+
+    <h2>O método que uso para descobrir as fronteiras</h2>
+    <p>Quando o sistema justifica a estrutura, o problema vira outro: <strong>errar os nomes e os limites no início</strong>. Esse erro é o que dói mais tarde, porque renomear um domínio depois que ele virou tabela, fila e contrato de API é caro. O que faço é um exercício curto, antes de qualquer código, e é dele que saíram os checklists que eu publicava aqui antes.</p>
+    <ol>
+      <li><strong>Listo os fluxos principais</strong> em frases curtas, sem pensar em tela. "Usuário cadastra operação", "sistema simula estratégia com histórico", "robô executa ordem real".</li>
+      <li><strong>Grifo os substantivos e os atores.</strong> Usuário, conta, operação, ordem, estratégia, histórico de preço, exchange. Cada substantivo que aparece em mais de um fluxo é candidato a entidade.</li>
+      <li><strong>Agrupo em domínios que não se misturam.</strong> Aqui está o erro mais comum: <code>operation</code>, <code>order</code> e <code>market_data</code> parecem a mesma coisa e não são. Uma operação é a intenção do usuário, uma ordem é o que foi mandado para a exchange, dado de mercado é o que veio de fora. Misturar os três gera uma tabela com trinta colunas opcionais.</li>
+      <li><strong>Modelo só as entidades principais</strong>, com nome e campos, sem pensar em ORM.</li>
+      <li><strong>Transformo cada ação em um caso de uso</strong> com nome de verbo: <code>SimulateGridStrategy</code>, <code>CreateOrder</code>, <code>GetAccountBalance</code>.</li>
+      <li><strong>Marco as fronteiras externas</strong>: API da exchange, banco, fila, storage. Cada uma vira uma interface que o domínio define e a infraestrutura implementa.</li>
+    </ol>
+    <p>Só depois disso a estrutura de pastas aparece, e ela aparece quase sozinha:</p>
+<div class="tree">src/
+  domain/           # entidades e regras puras, por domínio
+    operation/
+    order/
+    market_data/
+  application/      # casos de uso, orquestração
+    operation/
+      commands/  queries/  dtos/
+  infrastructure/   # implementações: banco, exchange, fila
+  api/              # borda HTTP: routers e schemas
+  shared/           # logging, utilitários</div>
+
+    <h2>Onde a teoria quebra na prática</h2>
+    <h3>Transações que cruzam domínios</h3>
+    <p>O diagrama bonito tem cada domínio isolado. A vida real tem "criar a ordem e debitar o saldo" na mesma transação. Dá para resolver com um <em>unit of work</em> que o caso de uso abre e os repositórios compartilham, mas isso é uma decisão arquitetural que o livro não toma por você. Minha regra: se duas entidades precisam ser consistentes na mesma transação com frequência, talvez elas sejam do mesmo domínio e eu separei errado.</p>
+    <h3>O domínio anêmico</h3>
+    <p>É fácil acabar com entidades que são só <em>dataclasses</em> e casos de uso gigantes que fazem tudo. Isso é a arquitetura em camadas com nome novo. O sinal de alerta é um caso de uso com mais de uma regra de negócio dentro de <code>if</code>. A regra pertence à entidade; o caso de uso só orquestra.</p>
+    <h3>Performance de leitura</h3>
+    <p>Repositório que devolve entidade completa é ótimo para escrita e péssimo para uma tela de listagem com paginação e filtros. Separo leitura de escrita quando isso aparece: a <em>query</em> fala com o banco diretamente e devolve um DTO, sem passar pela entidade. É uma concessão deliberada, documentada no nome da pasta (<code>queries/</code>), e não uma violação escondida.</p>
+
+    <div class="callout callout--dark">
+      <span class="label">O que eu faria diferente</span>
+      <p>Nos primeiros projetos em que apliquei isso, criei interface para tudo, inclusive para coisas que nunca teriam segunda implementação. Hoje só crio a porta quando existe uma fronteira real (rede, disco, processo) ou quando preciso dela para testar. Interface sem segunda implementação e sem teste que a use é só cerimônia.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>Camadas são um meio. O fim é poder reverter decisões caras.</li>
+      <li>O investimento está em descobrir os domínios e nomear bem, não em criar pastas.</li>
+      <li>Transações cruzadas, domínio anêmico e leitura pesada são onde o modelo precisa de concessões explícitas.</li>
+      <li>Arquitetura boa é a que dá para adiar até o sistema pedir.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_hexagonal_architeture.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>18 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const yearSpan = document.getElementById('ano-atual');
-    if(yearSpan) {
-      yearSpan.textContent = new Date().getFullYear();
-    }
-  });
-</script>
 </html>
