@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto | Blog Igor Nascimento</title>
+  <meta name="description" content="Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Infraestrutura</span>
+      <h1>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h1>
+      <p class="standfirst">Existe um abismo entre rodar uma IA no terminal e servir um modelo para uma equipe usar em tempo real. Quase todo mundo descobre isso da pior forma, quando duas pessoas mandam mensagem ao mesmo tempo e a memória bate no teto. Uma conversa sobre por que o Ollama não bastou, o que mudou ao migrar para o vLLM, e a leitura, número por número, do painel que construí para enxergar o cluster.</p>
+      <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O abismo entre o terminal e o time</h2>
+    <p>Existe um abismo gigante entre "rodar uma IA no terminal" e "servir um modelo para uma equipe inteira usar em tempo real". E quase todo mundo só descobre isso da pior forma: quando a memória bate no teto e duas pessoas tentam mandar mensagem ao mesmo tempo.</p>
+    <p>Foi enfrentando exatamente esse gargalo que decidi construir uma infraestrutura própria: um servidor com duas GPUs dedicadas, duas RTX 3060 de 12 GB, capaz de entregar mais de 160 tokens por segundo agregados para o time usar simultaneamente, sem fila e com latência baixa. Este texto é sobre o caminho até lá, e sobre o painel que construí para enxergar o que estava acontecendo, porque sem ele eu estaria chutando.</p>
+
+    <h2>Por que o Ollama não bastou</h2>
+    <p>O Ollama é fantástico para prototipagem rápida e para uso individual. Baixa o modelo com um comando, troca de modelo em segundos, roda em qualquer máquina. Eu continuo usando no notebook. O problema começa quando se tenta transformar esse setup num serviço compartilhado. O fluxo tradicional atende uma requisição por vez por modelo carregado; há configuração para paralelismo, mas o motor não foi desenhado em torno disso. Se alguém pede um resumo longo, os outros ficam na fila esperando aquele decode terminar. E cada requisição tem seu KV cache alocado de forma simples, o que desperdiça VRAM e limita quantas cabem ao mesmo tempo.</p>
+    <p>Para um usuário, nada disso aparece. Para seis, aparece na primeira manhã.</p>
+    <div class="versus">
+      <div>
+        <h4>Ollama</h4>
+        <ul>
+          <li>Instalação e troca de modelo imediatas</li>
+          <li>Convive com outras coisas na GPU; aloca o que precisa</li>
+          <li>Concorrência limitada; fila quando há mais de um pedido longo</li>
+          <li>Ideal para desenvolvimento e uso pessoal</li>
+        </ul>
+      </div>
+      <div>
+        <h4>vLLM</h4>
+        <ul>
+          <li>Reserva a GPU inteira na inicialização; troca de modelo é lenta</li>
+          <li>Continuous batching e PagedAttention de fábrica</li>
+          <li>Paralelismo de tensor entre placas com uma flag</li>
+          <li>Ideal para servir vários usuários com métricas</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>A barreira invisível da VRAM</h2>
+    <p>Em inferência, velocidade é reflexo da largura de banda de memória. A VRAM de uma GPU dedicada transfere dados várias vezes mais rápido do que a RAM do sistema e ordens de grandeza mais rápido do que um NVMe. Para sustentar 160 tokens por segundo com fluidez constante, <strong>o modelo tem que estar inteiramente carregado na VRAM</strong>, com o KV cache junto. Se apenas 5% ou 10% transbordar para a RAM, o throughput desaba, e não proporcionalmente: a parte lenta domina a conta, como mostro em outro texto sobre a <a href="hierarquia_banda.html">hierarquia de largura de banda</a>. Essa foi a primeira lição do servidor, aprendida da forma dolorosa, com o modelo "quase cabendo".</p>
+    <p>A solução foi dividir o modelo entre as duas placas com paralelismo de tensor. Cada uma carrega metade dos pesos, e as bandas das duas VRAMs se somam. O custo é a sincronização pelo PCIe a cada camada, que existe e aparece nos números, mas é muito menor do que o custo de transbordar.</p>
+
+    <h2>Continuous batching e o KV cache dinâmico</h2>
+    <p>A virada de chave foi migrar para um motor de inferência feito para produção. Em vez de criar filas bloqueantes, o vLLM aplica <strong>continuous batching</strong>: requisições que chegam entram direto no ciclo de geração que já está rodando, e as que terminam saem, sem esperar o lote inteiro. Como o decode é limitado por memória, gerar para oito sequências ao mesmo tempo custa quase a mesma leitura de pesos que gerar para uma. É daí que vêm os 160 tokens por segundo agregados: não é uma sequência a 160, são várias sequências compartilhando a mesma passagem pelos pesos.</p>
+    <p>Aliado a isso, o <strong>PagedAttention</strong> transforma a alocação do KV cache em algo parecido com memória virtual: blocos pequenos, não contíguos, alocados sob demanda e compartilhados entre sequências que têm o mesmo prefixo. É o que permite altas taxas de acerto de cache e respostas rápidas mesmo sob concorrência.</p>
+
+    <h2>A telemetria, número por número</h2>
+    <p>Para validar e acompanhar esse comportamento, montei um painel próprio. Dois instantes dele contam a história melhor do que eu.</p>
+    <figure>
+      <img src="../assets/img/painel-ocioso.png" alt="Painel do servidor em repouso: zero requisições, cache hit 97%, primeiro token em 0,87 segundo, GPUs a 88% de VRAM e 49 e 41 graus" loading="lazy">
+      <figcaption>Em repouso, depois de quase 23 horas no ar. Nenhuma requisição rodando, mas as GPUs a 88% de VRAM: é a reserva fixa do vLLM, pesos mais pool de KV cache. Cache hit de 97% e primeiro token em 0,87 segundo nas últimas requisições.</figcaption>
+    </figure>
+    <figure>
+      <img src="../assets/img/painel-carga.png" alt="Painel do servidor sob carga: 95 tokens por segundo gerando, 12.968,6 lendo prompt, cache hit 85,5%, primeiro token em 1,72 segundo" loading="lazy">
+      <figcaption>Sob carga, um dia e meio depois. Gerando 95 tokens por segundo e lendo prompt a 12.968,6. Cache hit caiu para 85,5% e o primeiro token subiu para 1,72 segundo. A relação entre as duas coisas é direta.</figcaption>
+    </figure>
+    <p>O que cada número diz:</p>
+    <ul>
+      <li><strong>88% de VRAM nas duas placas, com zero requisições.</strong> O vLLM reserva uma fração configurada da memória na inicialização, descarrega os pesos (10,8 GB em cada placa, metade do modelo em cada uma) e transforma o resto em pool de KV cache. O número não muda com a carga. Se mudasse, seria sinal de problema.</li>
+      <li><strong>Contexto máximo 262.144.</strong> Não é o limite de uma conversa; é o total de tokens que o pool de KV cache comporta somando todas as sequências vivas. É a "folga de contexto dinâmico" que decide quantas pessoas cabem ao mesmo tempo.</li>
+      <li><strong>Preempções zero.</strong> A métrica que eu mais vigio. Preempção é quando o pool acaba e o escalonador precisa expulsar uma sequência. Zero sob carga normal significa que o dimensionamento está certo. Qualquer valor acima de zero significa que a latência vai oscilar sem explicação aparente.</li>
+      <li><strong>12.968,6 tokens por segundo lendo, 95 gerando.</strong> As duas fases da inferência, no mesmo instante. Prefill paralelo e limitado por computação; decode sequencial e limitado por banda. A diferença de 136 vezes não é ineficiência: é física, e é por isso que as duas métricas de latência, primeiro token e tokens por segundo, precisam ser olhadas separadamente.</li>
+      <li><strong>Cache hit de 97% e 85,5%, primeiro token de 0,87 e 1,72 segundo.</strong> O prefix caching é a alavanca que mais mexe na latência percebida. Prompt de sistema e histórico da conversa não são recalculados quando estão no cache; só o sufixo novo passa pelo prefill. Quando a taxa de acerto cai, o primeiro token sobe na mesma hora.</li>
+      <li><strong>4,4 milhões de tokens de prompt para 45 mil gerados.</strong> Essa proporção, quase cem para um, diz muito sobre o time: a carga é de contexto, documentos e histórico, não de texto longo gerado. É um workload em que o prefix caching vale ouro e em que o prefill, não o decode, é o que mais consome a GPU. Sem o painel, eu teria otimizado a coisa errada.</li>
+      <li><strong>48 e 57 °C sob carga, 102 e 106 W de 170 W.</strong> Temperaturas longe do throttling, consumo bem abaixo do limite, núcleos quase ociosos mesmo gerando. É a assinatura de um workload limitado por memória, e é o que permite limitar a potência das placas sem perder throughput.</li>
+    </ul>
+    <p>O painel também registra uso por pessoa: requisições, tokens gerados, tokens de prompt. Serve para duas coisas: saber quem usa o quê, para planejar capacidade, e perceber quando uma integração automatizada está consumindo mais do que todos os humanos juntos.</p>
+
+    <h2>O que a migração custou</h2>
+    <p>Nada disso veio de graça, e é importante dizer o que piorou:</p>
+    <ul>
+      <li><strong>As GPUs ficaram dedicadas.</strong> O vLLM reserva a memória na inicialização. Não dá para rodar outra coisa nelas, nem um segundo modelo pequeno, sem reconfigurar.</li>
+      <li><strong>Trocar de modelo virou um evento.</strong> No Ollama, segundos. No vLLM, parar o serviço, subir de novo, esperar carregar e aquecer. Para um serviço de time isso é aceitável; para experimentação, não. O Ollama continua no notebook por isso.</li>
+      <li><strong>A configuração passou a exigir contas.</strong> Fração de memória, comprimento máximo de contexto, número de sequências simultâneas, paralelismo de tensor. Errar qualquer um desses dá OOM na inicialização ou preempção sob carga. O painel existe para ver o resultado das escolhas.</li>
+      <li><strong>Paralelismo de tensor em PCIe tem teto.</strong> Sem NVLink, a sincronização entre as placas come parte do ganho, e aparece em prompts longos. Funciona bem para o nosso padrão de uso; não funcionaria igual com lotes grandes de documentos.</li>
+    </ul>
+    <div class="callout callout--dark">
+      <span class="label">A frase para levar</span>
+      <p>Colocar inteligência artificial para rodar localmente com alta performance não é mágica de software. É ajuste fino de arquitetura e respeito aos limites do hardware. E a única forma de respeitar um limite é conseguir enxergá-lo, o que é o motivo de o painel ter sido a primeira coisa que construí depois do servidor.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>Ollama é para um; vLLM é para muitos. O abismo aparece na primeira vez que duas pessoas mandam mensagem juntas.</li>
+      <li>O modelo precisa caber inteiro na VRAM com o KV cache. Transbordar um pouco custa muito. Duas placas em paralelismo de tensor somam banda.</li>
+      <li>Continuous batching e PagedAttention são o que transforma "um de cada vez" em 160 tokens por segundo agregados.</li>
+      <li>O painel: 88% de VRAM fixa, 262 mil tokens de pool, zero preempções, 12.968 lendo contra 95 gerando, cache hit de 97% dando primeiro token em 0,87 segundo, cem tokens de prompt para cada um gerado.</li>
+      <li>O custo: GPUs dedicadas, troca de modelo lenta, configuração que exige conta, e teto do paralelismo em PCIe.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="direcao_recusa.html" data-slug="direcao_recusa" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2" opacity=".5"/><path d="M8 26 L26 10" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 10h6v6" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="14" r="1.6" fill="#111827"/><circle cx="23" cy="24" r="1.6" fill="#111827"/><circle cx="14" cy="23" r="1.6" fill="#111827"/></svg></span>
+          <h3>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h3>
+          <p>Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento | Blog Igor Nascimento</title>
+  <meta name="description" content="Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Deep Learning</span>
+      <h1>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h1>
+      <p class="standfirst">Modelos de linguagem pensam em conceitos ou só decoram padrões? A interpretabilidade mecanística tem uma resposta parcial e desconfortável: comportamentos complexos, como recusar uma instrução, se concentram em poucas direções do espaço de ativação, e podem ser deslocados com álgebra linear durante a inferência. Uma conversa sobre o que isso revela, o que isso custa e o que isso muda para quem coloca modelo em produção.</p>
+      <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>A pergunta que a interpretabilidade tenta responder</h2>
+    <p>Quando um modelo de linguagem se recusa a atender uma instrução, o que aconteceu lá dentro? A resposta intuitiva é "ele aprendeu, em bilhões de parâmetros, que esse tipo de pedido merece um não". É uma resposta que não explica nada, porque não diz <em>onde</em> essa decisão vive nem <em>como</em> ela se manifesta. A <strong>interpretabilidade mecanística</strong> é a área que insiste nessa pergunta: em vez de tratar o Transformer como caixa-preta e medir só entrada e saída, ela abre a rede e procura, nos estados internos, as estruturas que governam o comportamento.</p>
+    <p>O que se descobriu nos últimos anos é mais específico do que eu esperava quando comecei a acompanhar o tema. Comportamentos que parecem difusos e de alto nível, como recusar, estão, em boa medida, <strong>concentrados em direções específicas do espaço de ativação</strong>. Não espalhados por toda parte. Concentrados. E isso tem consequências práticas que vão muito além da curiosidade acadêmica.</p>
+
+    <h2>O residual stream como um mapa</h2>
+    <p>Para entender a descoberta é preciso entender onde ela foi feita. Um Transformer não é uma sequência de transformações em que cada camada substitui a anterior. Ele tem um <strong>fluxo residual</strong>: um vetor por token, de dimensão fixa (4.096 num modelo de 7 a 8 bilhões de parâmetros, por exemplo), que atravessa todas as camadas. Cada bloco de atenção e cada bloco feed-forward <em>lê</em> desse vetor, calcula alguma coisa, e <em>soma</em> o resultado de volta. Nada é apagado, tudo é acumulado.</p>
+    <p>Isso faz do residual stream uma espécie de barramento compartilhado. Camadas iniciais escrevem coisas sintáticas, camadas intermediárias escrevem coisas semânticas, camadas finais preparam a predição do próximo token. E o que uma camada escreve, qualquer camada posterior pode ler. A <strong>hipótese da representação linear</strong>, que organiza boa parte da pesquisa, diz que conceitos tendem a ser codificados como <em>direções</em> nesse espaço: um conceito está mais ou menos presente conforme o vetor de ativação tem componente maior ou menor naquela direção.</p>
+    <div class="callout">
+      <span class="label">Uma analogia que ajuda</span>
+      <p>Pense no residual stream como uma mesa de trabalho onde cada camada deixa bilhetes. Os bilhetes se sobrepõem, e qualquer camada seguinte lê a mesa inteira de uma vez. A hipótese linear diz que "esta instrução é perigosa" é um bilhete com um formato reconhecível, que fica na mesma posição da mesa toda vez. Se isso for verdade, dá para achar o formato. E se dá para achar, dá para apagar ou reforçar.</p>
+    </div>
+
+    <h2>A descoberta: a recusa como uma coordenada</h2>
+    <p>O trabalho que cristalizou isso foi <em>Refusal in Language Models Is Mediated by a Single Direction</em> (Arditi e colegas, 2024), testado em treze modelos abertos de várias famílias, de poucos bilhões até 72 bilhões de parâmetros. A receita experimental é simples de enunciar. Você monta dois conjuntos de instruções: um de pedidos que o modelo normalmente atende, outro de pedidos que o modelo normalmente recusa. Passa os dois pelo modelo, e em uma camada intermediária, numa posição de token fixa, coleta os vetores do residual stream. Calcula a média de cada grupo e subtrai:</p>
+    <p>\[ \vec r = \mu_{\text{recusa}} - \mu_{\text{aceite}} \]</p>
+    <p>Esse vetor, a <strong>diferença de médias</strong>, é a "direção de recusa". A afirmação do trabalho não é que ela existe, porque qualquer par de conjuntos tem uma diferença de médias. A afirmação é o que acontece quando você <em>intervém</em> nela:</p>
+    <ul>
+      <li><strong>Remover a componente</strong> do residual stream nessa direção, em todas as camadas e posições, faz o modelo deixar de recusar o que recusava, mantendo o resto do comportamento quase intacto.</li>
+      <li><strong>Somar a direção</strong> ao residual stream de um pedido inofensivo faz o modelo recusar o que atenderia.</li>
+    </ul>
+    <p>Matematicamente, a remoção é uma projeção ortogonal. Com \(\hat r\) sendo a direção normalizada:</p>
+    <p>\[ x' = x - \hat r\, \hat r^{\top} x \]</p>
+    <p>E a adição é uma soma escalada, \(x' = x + \alpha \hat r\), em que \(\alpha\) controla a intensidade. Nada disso toca nos pesos. É uma operação sobre o vetor em trânsito, durante o forward pass. A decisão de recusar, que parecia um julgamento complexo, <strong>se comporta quase como uma coordenada linear no espaço latente</strong>.</p>
+    <p>O detalhe que mais me impressiona é a última etapa do trabalho: como a projeção é uma operação linear, ela pode ser incorporada nas matrizes que escrevem no residual stream. Chama-se <em>ortogonalização de pesos</em>. O resultado é um modelo que se comporta como se a direção tivesse sido removida, sem nenhum gancho em tempo de execução e sem nenhum passo de treinamento. Fine-tuning não foi necessário. Um gradiente sequer foi calculado.</p>
+
+    <h2>Steering versus fine-tuning: o que cada um compra</h2>
+    <p>A intervenção por ativação, ou <em>activation steering</em>, se tornou uma família de técnicas. Além da diferença de médias, há variações que usam vetores contrastivos por par de exemplos, que combinam várias camadas, e a <strong>Engenharia de Representação</strong> (RepE, Zou e colegas, 2023), que aplica a mesma lógica a honestidade, emoção, viés e até à tendência de buscar poder em cenários simulados. A pergunta de engenharia é: quando isso é preferível a treinar?</p>
+    <div class="versus">
+      <div>
+        <h4>Fine-tuning (SFT, RLHF, DPO)</h4>
+        <ul>
+          <li>Reescreve matrizes de pesos inteiras</li>
+          <li>Precisa de dados, GPU e um ciclo de validação</li>
+          <li>Risco de esquecimento catastrófico e de regressão em outras capacidades</li>
+          <li>Resultado permanente, difícil de desfazer e de explicar</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Steering por ativação</h4>
+        <ul>
+          <li>Não altera pesos; opera no vetor em trânsito</li>
+          <li>Precisa de algumas centenas de exemplos contrastivos e um forward pass</li>
+          <li>Reversível: é um interruptor com um escalar</li>
+          <li>Resultado explicável: "somei isto, nesta camada, com este peso"</li>
+        </ul>
+      </div>
+    </div>
+    <p>Dito assim parece que steering ganha sempre. Não ganha, e os limites são importantes:</p>
+    <ul>
+      <li><strong>A intensidade tem uma janela estreita.</strong> Um \(\alpha\) baixo não muda nada; um alto destrói a coerência do texto. A janela útil varia por modelo e por camada, e precisa ser calibrada por avaliação, não por intuição.</li>
+      <li><strong>A direção é específica.</strong> Ela depende da camada, da posição do token, do modelo e até da formatação do prompt. Uma direção extraída de um modelo não serve para outro.</li>
+      <li><strong>"Uma direção" é uma simplificação útil.</strong> Trabalhos posteriores mostraram que a recusa ocupa algo mais parecido com um <em>cone</em> de direções, com componentes parcialmente independentes. A primeira componente explica a maior parte, mas não tudo. O modelo linear é um bom mapa, não o território.</li>
+      <li><strong>Steering altera o comportamento, não o conhecimento.</strong> Se o modelo não sabe algo, nenhuma direção vai fazê-lo saber. Se ele tem um viés aprendido nos dados, steering pode mascarar a expressão do viés sem removê-lo.</li>
+    </ul>
+
+    <h2>O que isso ensina sobre alinhamento</h2>
+    <p>Aqui está a parte desconfortável, e é a que mais vale a conversa. Se um comportamento de segurança pode ser deslocado por uma projeção, isso diz algo sobre <em>como</em> esse comportamento foi instalado. As técnicas atuais de alinhamento, RLHF e DPO entre elas, são aplicadas depois do pré-treinamento, com relativamente poucos dados, e ajustam o modelo na margem. O que a geometria sugere é que elas frequentemente criam uma <strong>camada comportamental externa</strong>, uma espécie de verniz que decide "recusar" ou "atender" com base em poucas features, em vez de alterar as representações conceituais profundas da rede.</p>
+    <p>Isso tem um nome na literatura: <em>alinhamento superficial</em>. O modelo que recusa continua tendo, nas camadas internas, toda a capacidade e todo o conhecimento necessários para atender. A recusa é um portão colocado na frente, e um portão de uma direção só.</p>
+    <p>Há evidência complementar que aponta na mesma direção: Qi e colegas (2024) mostraram que boa parte do efeito do alinhamento se concentra na distribuição dos <strong>primeiros tokens</strong> da resposta. O modelo aprendeu, sobretudo, a <em>começar</em> de um certo jeito quando detecta um pedido problemático. Ataques que forçam o início da resposta exploram exatamente essa rasura.</p>
+    <p>A leitura correta disso exige cuidado, e é onde muita gente erra. Não significa que o modelo não tem o conceito. Significa que o conceito ("isto é um pedido perigoso") e a política ("portanto eu recuso") são representações <strong>separadas</strong>, e que o alinhamento atual mexe quase só na segunda. Depois da ablação, o modelo continua sabendo identificar o risco; ele apenas deixa de converter o reconhecimento em comportamento. Dito de outro jeito: o alinhamento instala um classificador raso sobre representações conceituais que o pré-treino já tinha construído.</p>
+    <div class="callout callout--dark">
+      <span class="label">Por que isso importa para quem não pesquisa alinhamento</span>
+      <p>Porque é uma lição sobre <strong>onde o seu comportamento de segurança vive</strong>. Se você constrói um produto em cima de um modelo aberto e confia na recusa do modelo como barreira, você está confiando num verniz que uma projeção remove. A barreira de verdade precisa estar fora do modelo: em filtros de entrada e saída, em permissões do sistema, em auditoria do que foi gerado. O modelo é uma camada de defesa, nunca a única. Isso já era boa prática antes; a geometria explica <em>por que</em> é indispensável.</p>
+    </div>
+    <p>Há também um lado construtivo. Se a recusa é uma direção, ela é <strong>observável</strong>. Um classificador linear barato, uma <em>probe</em>, treinado sobre o residual stream, consegue dizer em tempo real "o modelo está no estado interno de recusa" ou "o modelo está no estado interno de incerteza", antes mesmo de o texto sair. Isso abre uma forma de monitoramento que não existe quando se olha só a saída: observabilidade do estado interno, com custo de um produto escalar por token. É a mesma ideia de um health check, só que dentro da rede.</p>
+    <p>E há o caminho que a Anthropic mostrou com os <em>autoencoders esparsos</em>: em vez de extrair uma direção por contraste, decompor as ativações num dicionário de milhões de features mais interpretáveis, cada uma correspondendo a um conceito mais ou menos legível. O experimento do "Golden Gate Claude", em 2024, foi exatamente steering sobre uma feature dessas: amplificar a feature da ponte Golden Gate fazia o modelo trazê-la para qualquer assunto. É steering com um mapa mais detalhado. E mais caro: treinar o dicionário custa muito mais do que calcular uma diferença de médias.</p>
+
+    <h2>Os trade-offs de usar isso em produção</h2>
+    <table>
+      <thead><tr><th>Uso</th><th>O que ganha</th><th>O que arrisca</th></tr></thead>
+      <tbody>
+        <tr><td>Controle de tom ou persona</td><td>Ajuste reversível sem retreino; um escalar por comportamento</td><td>Degradação de coerência fora da janela; interação entre vários vetores é pouco previsível</td></tr>
+        <tr><td>Redução de viés de expressão</td><td>Barato, rápido de iterar</td><td>Mascarar não é remover; o viés pode reaparecer sob outro prompt</td></tr>
+        <tr><td>Monitoramento com probes</td><td>Observabilidade do estado interno a custo quase zero</td><td>Probe treinada numa distribuição falha em outra; precisa de recalibração</td></tr>
+        <tr><td>Reforçar a recusa em domínio sensível</td><td>Portão mais rígido sem tocar nos pesos</td><td>Falso positivo em pedidos legítimos; o vetor não entende contexto de negócio</td></tr>
+      </tbody>
+    </table>
+    <p>Em todos os casos, o padrão é o mesmo: steering é uma ferramenta de <strong>ajuste fino em tempo de execução</strong>, não um substituto para alinhamento bem feito nem para barreiras fora do modelo. O que ela faz melhor do que qualquer outra é ser honesta sobre o que está fazendo. "Somei este vetor nesta camada" é uma explicação que fine-tuning nunca vai conseguir dar.</p>
+    <p>Há ainda a questão do uso dual, que não dá para ignorar. A mesma álgebra que permite reforçar a recusa permite removê-la, e modelos abertos com a direção ortogonalizada circulam publicamente. Os autores do trabalho original discutiram isso abertamente, e a conclusão deles é a que eu assino: a fragilidade existe quer se publique quer não, e conhecê-la é a condição para construir alinhamento que não dependa de um portão de uma direção só.</p>
+
+    <h2>Voltando à pergunta inicial</h2>
+    <p>Modelos pensam em conceitos ou decoram padrões? A geometria do residual stream dá uma resposta que não é nem uma coisa nem outra. Há estrutura: conceitos têm direções, comportamentos têm coordenadas, e isso é mais do que memorização estatística bruta. Mas a estrutura é <em>linear demais</em> e <em>rasa demais</em> nos lugares em que gostaríamos que fosse profunda. Um modelo cuja noção de "isto é perigoso" cabe numa projeção não tem a noção; tem um detector.</p>
+    <p>Entender essa geometria é o caminho para modelos mais transparentes e mais controláveis. E, no curto prazo, é o argumento mais forte que conheço para não depositar no modelo uma responsabilidade que ele carrega numa direção só.</p>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>O residual stream é um barramento compartilhado entre camadas, e conceitos tendem a aparecer nele como direções.</li>
+      <li>A recusa, medida como diferença de médias entre pedidos aceitos e recusados, se comporta como uma coordenada: remover a componente desliga a recusa, somá-la liga. Sem retreino.</li>
+      <li>Steering é reversível, barato e explicável, mas tem janela de intensidade estreita, é específico por modelo e camada, e altera comportamento, não conhecimento.</li>
+      <li>Que uma projeção baste indica alinhamento superficial: um portão de uma direção na frente de uma capacidade intacta.</li>
+      <li>Para quem opera modelos: a barreira de segurança fica fora do modelo; o estado interno vira sinal de monitoramento; e steering é ajuste fino, não fundação.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ollama_para_vllm.html" data-slug="ollama_para_vllm" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="4" y="7" width="28" height="18" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M8 20l5-6 4 4 4-7 4 5 3-3" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30h12" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h3>
+          <p>Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

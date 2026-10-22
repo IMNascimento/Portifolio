@@ -32,44 +32,130 @@
   <main class="posts" id="artigos">
     <div class="posts__inner">
       <h2>Artigos</h2>
-      <p>Seis conversas até agora, em três frentes: como organizar código que precisa durar, como colocar IA em produção sem se enganar sobre o que ela faz, e dois projetos abertos dissecados decisão por decisão.</p>
-      <div class="grid">
-        <a class="post-card" href="pages/dica_clean_architeture.html">
+      <p>17 conversas até agora: como organizar código que precisa durar, como colocar IA em produção sem se enganar sobre o que ela faz, como cuidar dos dados antes do modelo, o que a geometria interna dos Transformers ensina sobre alinhamento, a física de servir modelos em GPU, e projetos abertos dissecados decisão por decisão.</p>
+      <div class="filters">
+        <form class="search" role="search" onsubmit="return false">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#6b7280" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="search" id="q" placeholder="Buscar por título, tema ou qualquer termo dentro dos artigos" autocomplete="off" aria-label="Buscar artigos">
+          <kbd>/</kbd>
+          <button class="clear" type="button" aria-label="Limpar busca">&times;</button>
+        </form>
+        <div class="chips" role="group" aria-label="Filtrar por tema">
+          <button class="chip is-active" type="button" data-tag="">Todos<span class="n">17</span></button><button class="chip" type="button" data-tag="Arquitetura">Arquitetura<span class="n">3</span></button><button class="chip" type="button" data-tag="Backend">Backend<span class="n">2</span></button><button class="chip" type="button" data-tag="IA aplicada">IA aplicada<span class="n">5</span></button><button class="chip" type="button" data-tag="Deep Learning">Deep Learning<span class="n">2</span></button><button class="chip" type="button" data-tag="Visão computacional">Visão computacional<span class="n">2</span></button><button class="chip" type="button" data-tag="Protocolos">Protocolos<span class="n">1</span></button><button class="chip" type="button" data-tag="Sistemas">Sistemas<span class="n">3</span></button><button class="chip" type="button" data-tag="Dados">Dados<span class="n">1</span></button><button class="chip" type="button" data-tag="Engenharia">Engenharia<span class="n">1</span></button><button class="chip" type="button" data-tag="Linux">Linux<span class="n">1</span></button><button class="chip" type="button" data-tag="Inferência">Inferência<span class="n">6</span></button><button class="chip" type="button" data-tag="Infraestrutura">Infraestrutura<span class="n">7</span></button>
+        </div>
+        <div class="results-bar">
+          <span id="count" aria-live="polite">17 artigos</span>
+          <label>Ordenar <select class="sort" id="sort"><option value="relevance">por relevância</option><option value="newest">mais recentes</option><option value="oldest">mais antigos</option><option value="short">leitura mais curta</option><option value="long">leitura mais longa</option></select></label>
+        </div>
+      </div>
+      <div class="grid" id="grid">
+        <a class="post-card" href="pages/dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
           <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
           <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
           <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
           <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
         </a>
-<a class="post-card" href="pages/dica_hexagonal_architeture.html">
+<a class="post-card" href="pages/dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
           <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
           <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
           <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
           <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
         </a>
-<a class="post-card" href="pages/LLM_not_resolve.html">
+<a class="post-card" href="pages/LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
           <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
           <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
           <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
           <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
         </a>
-<a class="post-card" href="pages/attention.html">
+<a class="post-card" href="pages/attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
           <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
           <h3>Atenção: o que a fórmula não conta sobre custo</h3>
           <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
           <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
         </a>
-<a class="post-card" href="pages/stratosphere.html">
+<a class="post-card" href="pages/stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
           <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
           <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
           <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
-          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>18 min de leitura</span></div>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
         </a>
-<a class="post-card" href="pages/photonprotocol.html">
+<a class="post-card" href="pages/photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
           <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
           <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
           <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
           <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
         </a>
+<a class="post-card" href="pages/dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/direcao_recusa.html" data-slug="direcao_recusa" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2" opacity=".5"/><path d="M8 26 L26 10" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 10h6v6" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="14" r="1.6" fill="#111827"/><circle cx="23" cy="24" r="1.6" fill="#111827"/><circle cx="14" cy="23" r="1.6" fill="#111827"/></svg></span>
+          <h3>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h3>
+          <p>Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pages/ollama_para_vllm.html" data-slug="ollama_para_vllm" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="4" y="7" width="28" height="18" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M8 20l5-6 4 4 4-7 4 5 3-3" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30h12" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h3>
+          <p>Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+      </div>
+      <div class="empty" id="empty">
+        <strong>Nenhum artigo encontrado</strong>
+        Tente outro termo ou limpe os filtros.
+        <div><button class="btn btn--dark" type="button" id="reset">Limpar busca e filtros</button></div>
       </div>
     </div>
   </main>
@@ -80,5 +166,123 @@
     </div>
   </footer>
   <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+  <script id="search-data" type="application/json">[{"slug":"dica_clean_architeture","title":"Clean Architecture: onde ela paga a conta e onde só adiciona pasta","excerpt":"Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.","tags":["Arquitetura","Backend"],"minutes":9},{"slug":"dica_hexagonal_architeture","title":"Ports & Adapters: o core é cego, e isso tem um preço","excerpt":"O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.","tags":["Arquitetura","Backend"],"minutes":9},{"slug":"LLM_not_resolve","title":"A LLM não resolve o seu problema. E tudo bem.","excerpt":"O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi \"não\".","tags":["IA aplicada","Arquitetura"],"minutes":10},{"slug":"attention","title":"Atenção: o que a fórmula não conta sobre custo","excerpt":"Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.","tags":["Deep Learning","IA aplicada"],"minutes":10},{"slug":"stratosphere","title":"Stratosphere: por que separar \"onde\" de \"quem\" funciona, e o que apodrece quando o banco é mal cuidado","excerpt":"Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.","tags":["Visão computacional","IA aplicada"],"minutes":22},{"slug":"photonprotocol","title":"PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo","excerpt":"Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.","tags":["Protocolos","Sistemas"],"minutes":20},{"slug":"dataset_curadoria","title":"O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta","excerpt":"Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.","tags":["Dados","Visão computacional"],"minutes":17},{"slug":"direcao_recusa","title":"A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento","excerpt":"Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.","tags":["Deep Learning","IA aplicada"],"minutes":15},{"slug":"ia_divida_tecnica","title":"IA, dívida técnica e a ilusão de que gerar código é resolver problema","excerpt":"Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.","tags":["Engenharia","IA aplicada"],"minutes":12},{"slug":"wavlink_sm768","title":"Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado","excerpt":"Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.","tags":["Sistemas","Linux"],"minutes":15},{"slug":"ttft_tpot","title":"TTFT e TPOT: as duas físicas que governam a latência de um LLM","excerpt":"Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.","tags":["Inferência","Infraestrutura"],"minutes":13},{"slug":"kv_cache","title":"Janela de contexto é VRAM: a conta do KV cache que derruba servidores","excerpt":"Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.","tags":["Inferência","Infraestrutura"],"minutes":13},{"slug":"quantizacao_tensor_cores","title":"VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo","excerpt":"Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.","tags":["Infraestrutura","Inferência"],"minutes":13},{"slug":"cpu_cuda_tensor_cores","title":"Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária","excerpt":"Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.","tags":["Infraestrutura","Inferência"],"minutes":12},{"slug":"hierarquia_banda","title":"A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda","excerpt":"360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.","tags":["Infraestrutura","Inferência"],"minutes":13},{"slug":"termodinamica_inferencia","title":"Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula","excerpt":"Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.","tags":["Infraestrutura","Sistemas"],"minutes":12},{"slug":"ollama_para_vllm","title":"Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto","excerpt":"Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.","tags":["Infraestrutura","Inferência"],"minutes":15}]</script>
+  <script>
+  (function(){
+    var data = JSON.parse(document.getElementById('search-data').textContent);
+    var grid = document.getElementById('grid'), q = document.getElementById('q'), form = q.closest('.search');
+    var count = document.getElementById('count'), empty = document.getElementById('empty'), sortSel = document.getElementById('sort');
+    var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+    var cards = {}; Array.prototype.forEach.call(grid.querySelectorAll('.post-card'), function(c){ cards[c.dataset.slug] = c; c.dataset.order = Object.keys(cards).length; });
+    var activeTag = '';
+
+    function norm(t){ return (t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+    data.forEach(function(d){ d.nt = norm(d.title); d.ne = norm(d.excerpt); d.body = ''; d.nb = ''; d.ntags = norm(d.tags.join(' ')); });
+
+    // o texto completo dos artigos só é baixado quando a pessoa usa a busca
+    var fullState = 'idle';
+    function loadFull(){
+      if (fullState !== 'idle') return;
+      fullState = 'loading';
+      fetch('assets/search-index.json').then(function(r){ return r.json(); }).then(function(full){
+        data.forEach(function(d){ d.body = full[d.slug] || ''; d.nb = norm(d.body); });
+        fullState = 'ready'; apply();
+      }).catch(function(){ fullState = 'failed'; apply(); });
+    }
+    q.addEventListener('focus', loadFull, { once: true });
+    q.addEventListener('pointerenter', loadFull, { once: true });
+
+    function terms(){ return norm(q.value).split(/\s+/).filter(function(t){ return t.length > 1; }); }
+
+    function score(d, ts){
+      if (!ts.length) return 1;
+      var total = 0;
+      for (var i = 0; i < ts.length; i++) {
+        var t = ts[i], sc = 0;
+        if (d.nt.indexOf(t) >= 0) sc += 50;
+        if (d.ntags.indexOf(t) >= 0) sc += 30;
+        if (d.ne.indexOf(t) >= 0) sc += 15;
+        var k = 0, pos = d.nb.indexOf(t); while (pos >= 0 && k < 50) { k++; pos = d.nb.indexOf(t, pos + 1); }
+        sc += Math.min(k, 50);
+        if (!sc) return 0;      // todos os termos precisam aparecer
+        total += sc;
+      }
+      return total;
+    }
+
+    function esc(s){ return s.replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function mark(text, ts){
+      var out = esc(text);
+      ts.forEach(function(t){
+        var re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        out = out.replace(re, '<mark>$1</mark>');
+      });
+      return out;
+    }
+    function snippet(d, ts){
+      var t = ts.find(function(x){ return d.nb.indexOf(x) >= 0; }); if (!t) return '';
+      var i = d.nb.indexOf(t), a = Math.max(0, i - 90), b = Math.min(d.body.length, i + t.length + 120);
+      var raw = d.body.slice(a, b);
+      return (a > 0 ? '…' : '') + mark(raw, ts) + (b < d.body.length ? '…' : '');
+    }
+
+    function apply(){
+      var ts = terms(), shown = [];
+      form.classList.toggle('has-query', q.value.length > 0);
+      data.forEach(function(d){
+        var c = cards[d.slug]; if (!c) return;
+        var tagOk = !activeTag || d.tags.indexOf(activeTag) >= 0;
+        var sc = tagOk ? score(d, ts) : 0;
+        c.classList.toggle('is-hidden', !sc);
+        var h3 = c.querySelector('h3'), p = c.querySelector('p'), sn = c.querySelector('.snippet');
+        if (sc && ts.length) {
+          h3.innerHTML = mark(d.title, ts); p.innerHTML = mark(d.excerpt, ts);
+          var inTitle = ts.some(function(t){ return d.nt.indexOf(t) >= 0 || d.ne.indexOf(t) >= 0; });
+          var s = inTitle ? '' : snippet(d, ts);
+          if (s) { if (!sn) { sn = document.createElement('div'); sn.className = 'snippet'; p.after(sn); } sn.innerHTML = s; }
+          else if (sn) sn.remove();
+        } else {
+          h3.textContent = d.title; p.textContent = d.excerpt; if (sn) sn.remove();
+        }
+        if (sc) shown.push({ d: d, c: c, sc: sc });
+      });
+      var mode = sortSel.value;
+      shown.sort(function(x, y){
+        if (mode === 'newest') return y.c.dataset.order - x.c.dataset.order;
+        if (mode === 'oldest') return x.c.dataset.order - y.c.dataset.order;
+        if (mode === 'short') return x.d.minutes - y.d.minutes;
+        if (mode === 'long') return y.d.minutes - x.d.minutes;
+        return (y.sc - x.sc) || (y.c.dataset.order - x.c.dataset.order);
+      });
+      shown.forEach(function(x){ grid.appendChild(x.c); });
+      var n = shown.length;
+      count.textContent = n === 0 ? 'Nenhum artigo' : (n === 1 ? '1 artigo' : n + ' artigos') + (ts.length || activeTag ? ' encontrado' + (n === 1 ? '' : 's') : '');
+      if (ts.length && fullState === 'loading') count.textContent += ' · carregando o texto completo…';
+      if (ts.length && fullState === 'failed') count.textContent += ' · buscando só em títulos e resumos';
+      empty.classList.toggle('is-visible', n === 0);
+      var sp = new URLSearchParams(); if (q.value) sp.set('q', q.value); if (activeTag) sp.set('tag', activeTag);
+      var url = location.pathname + (sp.toString() ? '?' + sp.toString() : '') + location.hash;
+      history.replaceState(null, '', url);
+    }
+
+    var timer; q.addEventListener('input', function(){ clearTimeout(timer); timer = setTimeout(apply, 120); });
+    sortSel.addEventListener('change', apply);
+    chips.forEach(function(ch){ ch.addEventListener('click', function(){
+      activeTag = ch.dataset.tag; chips.forEach(function(x){ x.classList.toggle('is-active', x === ch); }); apply();
+    }); });
+    function reset(){ q.value = ''; activeTag = ''; chips.forEach(function(x){ x.classList.toggle('is-active', x.dataset.tag === ''); }); apply(); q.focus(); }
+    form.querySelector('.clear').addEventListener('click', reset);
+    document.getElementById('reset').addEventListener('click', reset);
+    document.addEventListener('keydown', function(e){
+      if (e.key === '/' && document.activeElement !== q && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); q.focus(); }
+      if (e.key === 'Escape' && document.activeElement === q) { reset(); q.blur(); }
+    });
+
+    var init = new URLSearchParams(location.search);
+    if (init.get('q')) { q.value = init.get('q'); loadFull(); }
+    if (init.get('tag')) { activeTag = init.get('tag'); chips.forEach(function(x){ x.classList.toggle('is-active', x.dataset.tag === activeTag); }); }
+    apply();
+  })();
+  </script>
 </body>
 </html>
