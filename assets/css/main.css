@@ -5,10 +5,8 @@
 
 .container{
     width: 100%;
-    height: 100vh;
-    background: #000;
-    display: flex;
-    display: grid;
+    background: #fff;
+    position: relative;
     z-index: 0;
 }
 
@@ -63,391 +61,445 @@
     z-index: 0; 
 }
 
-.sobre{
+
+/* =====================================================================
+   Sistema visual das seções (alternância preto / branco)
+   ===================================================================== */
+:root{
+    --ink: #111827;
+    --muted: #4b5563;
+    --line: #e5e7eb;
+    --soft: #f3f4f6;
+    --dark-card: #121214;
+    --dark-line: #27272a;
+    --dark-muted: #a1a1aa;
+    --accent: #bb244e;
+    --radius: 18px;
+    --maxw: 1720px;
+    --font: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+html{ scroll-behavior: smooth; }
+body{
+    font-family: var(--font);
+    color: var(--ink);
+    background: #fff;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---- casca de seção ---- */
+.sec{ padding: 96px 0; }
+.sec--light{ background: #fff; color: var(--ink); }
+.sec--dark{ background: #000; color: #fff; }
+.sec__inner{
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+/* ---- título + ícone + texto de apoio ---- */
+.sec .title, .sec .jtitle h1{
     display: flex;
-    font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    padding-top: 20px;
-    background-color: #000;
-    height: 1050px;
-    
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 14px;
+    font-family: var(--font);
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
 }
+.sec .icon{
+    flex: none;
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--soft);
+}
+.sec--dark .icon{ background: #18181b; }
+.sec .icon img{ width: 28px !important; height: 28px !important; display: block; }
+/* ícones pretos no fundo escuro / ícones brancos no fundo claro */
+.sec--dark .icon img:not(.icon--light){ filter: invert(1); }
+.sec--light .icon img.icon--light{ filter: invert(1); }
 
-.sobre > img{
-    padding-top: 100px;
-    width: 900px;
-    height: 800px;
-    position: relative; /* Adicionado */
-    z-index: 1;
-}
-
-.sobre > div {
-    padding-top: 150px;
-    color: #fff;
+.sec__inner > p, .sec .lead{
     font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    text-align: center;
-}
-.sobre > div >p {
-    margin-right: 40px;
-    margin-left: 40px;
-    margin-top: 30px;
+    line-height: 1.65;
+    color: var(--muted);
+    max-width: none;
+    margin: 0 0 48px;
     text-align: justify;
 }
+.sec--dark .sec__inner > p{ color: var(--dark-muted); }
 
-.certificados{
-    font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    padding-left: 50px;
-    padding-top: 50px;
-}
-
-.certificados > h1{
-    font-size: 40px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
-    margin-top: 20px;
-    margin-left: 40px;
-    position: relative; 
-    z-index: 0; 
-}
-
-.certificados > p{
-    font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    margin-top: 20px;
-    margin-left: 40px;
-    margin-bottom: 150px;
-    position: relative; 
-    z-index: 0; 
-}
-
+/* ---- grade de cards ---- */
 .certificates-container{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    align-items: stretch;
+}
+.certificate{
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,.04), 0 10px 24px rgba(0,0,0,.05);
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.certificate:hover{
+    transform: translateY(-6px);
+    box-shadow: 0 6px 14px rgba(0,0,0,.06), 0 22px 44px rgba(0,0,0,.10);
+    border-color: #d1d5db;
+}
+.sec--dark .certificate{
+    background: var(--dark-card);
+    border-color: var(--dark-line);
+    box-shadow: none;
+}
+.sec--dark .certificate:hover{ border-color: #52525b; box-shadow: 0 22px 44px rgba(0,0,0,.5); }
+.certificate > br, .certificate-info > br{ display: none; }
+.certificate > img{
+    order: 1;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+}
+.sec--dark .certificate > img{ border-bottom-color: var(--dark-line); }
+.certificate h3{
+    order: 2;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 18px 22px 0;
+}
+.certificate-info{
+    order: 3;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 16px 22px 22px;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--muted);
+}
+.certificate h3 + .certificate-info{ padding-top: 8px; }
+.sec--dark .certificate-info{ color: var(--dark-muted); }
+.certificate-info p{ flex: 1; margin: 0; }
+/* nos cards sem descrição (certificados, papers, palestras) o <p> é o título */
+.certificados:not(.projetos) .certificate-info p{
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+}
+.sec--dark .certificados:not(.projetos) .certificate-info p,
+.sec--dark.certificados:not(.projetos) .certificate-info p{ color: #fff; }
+.links{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+/* ---- botões pílula ---- */
+.btn{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+.btn img, .btn svg{ width: 16px; height: 16px; flex: none; }
+.btn:hover{ background: var(--ink); border-color: var(--ink); color: #fff; }
+.btn:hover img{ filter: invert(1); }
+.btn:hover svg path{ fill: #fff; }
+.sec--dark .btn{ background: #18181b; border-color: #3f3f46; color: #fff; }
+.sec--dark .btn img{ filter: invert(1); }
+.sec--dark .btn:hover{ background: #fff; border-color: #fff; color: var(--ink); }
+.sec--dark .btn:hover img{ filter: none; }
+.sec__actions{ display: flex; justify-content: center; margin-top: 44px; }
+.btn--toggle{ padding: 12px 22px; font-size: 14px; }
+.sec:not(.is-expanded) .certificate--extra{ display: none; }
+
+
+/* ---- Open Source: grade centralizada (o card sobrando fica no meio) ---- */
+.projetos .certificates-container{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.projetos .certificate{ flex: 1 1 300px; max-width: 360px; }
+@media (max-width: 768px){
+    .projetos .certificate{ flex-basis: 100%; max-width: none; }
+}
+
+/* ---- Sobre ---- */
+.sobre .sec__inner{
+    display: grid;
+    grid-template-columns: minmax(280px, 460px) 1fr;
+    gap: 64px;
+    align-items: center;
+}
+.sobre img{
+    width: 100%;
+    height: 620px;
+    object-fit: cover;
+    object-position: center;
+    border-radius: var(--radius);
+    display: block;
+}
+.sobre h1{
+    font-size: 40px;
+    font-weight: 700;
+    margin: 0 0 24px;
+    letter-spacing: -0.01em;
+}
+.sobre p{
+    margin: 0 0 18px;
+    font-size: 17px;
+    line-height: 1.7;
+    color: #d4d4d8;
+    text-align: justify;
+}
+.sobre p:last-child{ margin-bottom: 0; }
+
+/* ---- Reflexão ---- */
+.quote{ padding: 120px 0; text-align: center; }
+.quote p{
+    position: relative;
+    max-width: 1320px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: clamp(28px, 3.4vw, 48px);
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: #f4f4f5;
+}
+.quote p::before{
+    content: "\201C";
+    display: block;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 120px;
+    line-height: .55;
+    color: var(--accent);
+    margin-bottom: 28px;
+}
+.quote b{
+    display: block;
+    margin-top: 36px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--dark-muted);
+}
+
+/* ---- Jornada (linha do tempo) ---- */
+.jornada .jtitle{ margin-bottom: 56px; }
+.jornada .jtitle h1{ justify-content: center; }
+.jornada ul{
+    list-style: none;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 0 0 40px;
+    border-left: 2px solid var(--line);
+}
+.jornada li{ position: relative; margin-bottom: 56px; }
+.jornada li:last-child{ margin-bottom: 0; }
+.jornada li::before{
+    content: "";
+    position: absolute;
+    left: -49px;
+    top: 8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--accent);
+    box-shadow: 0 0 0 4px #fff;
+}
+.jprof{
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    /*justify-content: center;*/
-}
-
-.certificate{
-    margin: 20px;
-    width: 300px;  
-
-}
-
-.certificate > img{
-    width: 100%;
-    height: 200px;
-    
-}
-
-.certificate-info{
-    font-size: 15px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    margin-top: 10px;
-}
-
-.jornada{
-    display: flex;
-    flex-direction: column;
-    font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    padding-top: 20px;
-    padding-left: 50px;
-    padding-top: 50px;
-    background-color: #000;
-    color: #fff;
-    align-items: center;
-}
-.jtitle{
-    font-size: 40px;
-    font-family: 'Roboto', sans-serif;
+    gap: 12px;
+    margin: 0 0 12px;
+    font-size: 24px;
     font-weight: 700;
-    margin-top: 20px;
-    margin-left: 40px;
-    text-align: center;
+    line-height: 1.2;
 }
-.jtitle > h1{
-    font-size: 60px;
-    font-family: 'Roboto', sans-serif;
-
-}
-
-.jornada > div{
-    font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    width: 700px;
-    margin-top: 80px;
-}
-.jornada > div > ul {
-    font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    list-style: none;
-    text-align: center;
-}
-.jornada > div > ul > li{
-    margin-bottom: 40px;
-    text-align: justify;
-}
-
-.jprof{
-    font-size: 35px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.jprof > b{
-    font-size: 40px;
-    font-family: 'Roboto', sans-serif;
+.jprof b{
+    font-size: 13px;
     font-weight: 700;
-    color: rgb(78, 78, 78);
-    font-weight: bold;
+    letter-spacing: .08em;
+    color: var(--accent);
+    background: #fdf2f6;
+    border: 1px solid #f3c4d4;
+    padding: 4px 10px;
+    border-radius: 999px;
 }
-
 .descript{
-    padding-left: 100px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--muted);
     text-align: justify;
 }
+.descript strong{ color: var(--ink); }
+.descript code{
+    display: inline-block;
+    margin-bottom: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--soft);
+    padding: 2px 8px;
+    border-radius: 6px;
+}
 
-.mensage{
+/* capas 16:9 (papers e palestras) aparecem inteiras */
+.papers .certificate > img, .palestras .certificate > img{
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+/* ---- Jornada em fundo escuro ---- */
+.jornada.sec--dark ul{ border-left-color: var(--dark-line); }
+.jornada.sec--dark li::before{ background: #000; box-shadow: 0 0 0 4px #000; }
+.jornada.sec--dark .jprof{ color: #fff; }
+.jornada.sec--dark .jprof b{ background: rgba(187,36,78,.14); border-color: rgba(187,36,78,.45); color: #f472a6; }
+.jornada.sec--dark .descript{ color: var(--dark-muted); }
+.jornada.sec--dark .descript strong{ color: #fff; }
+.jornada.sec--dark .descript code{ background: #18181b; color: #e4e4e7; }
+
+/* ---- Badges ---- */
+.badges .certificates-container{
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+}
+.badges .certificates-container a{
     display: flex;
-    flex-direction: column;
-    font-size: 45px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    padding: 200px;
-    background-color: #000;
-    color: #fff;
     align-items: center;
-    text-align: center;
+    justify-content: center;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.badges .certificates-container a:hover{
+    transform: translateY(-6px);
+    border-color: #d1d5db;
+    box-shadow: 0 10px 28px rgba(0,0,0,.10);
+}
+.badges .certificates-container img{
+    width: 100%;
+    max-width: 150px;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    display: block;
 }
 
-.mensage > b{
-    color: rgb(78, 78, 78);
+/* ---- Contato ---- */
+.contato .colunas{
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 56px;
+    align-items: center;
 }
-
-hr {
+.contato .coluna img{
+    width: 100%;
+    height: 440px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    display: block;
+}
+.contato .colun h2{
+    margin: 26px 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--dark-muted);
+}
+.contato .colun h2:first-child{ margin-top: 0; }
+.contato .colun a{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     color: #fff;
-}
-
-.contato {
-    display: flex;
-    flex-direction: column;
-    color: #fff;
-    background-color: #000;
-    padding-left: 150px;
-    padding-top: 50px;
-    padding-bottom: 100px;
-}
-
-.contato h1 {
-    font-size: 50px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    font-weight: bold;
-    margin-bottom: 50px;
-}
-
-.contato .colunas {
-    display: flex;
-    align-self: self-start;
-    
-}
-
-.contato .coluna {
-    margin: 0 10px; /* Adapte a margem conforme necessário */
-}
-.contato .colun{
-    margin-left: 100px;
-    margin-top: 100px;
-}
-
-.contato img {
-    width: 700px;
-    height: 500px;
-}
-
-.contato h2 {
-    margin-bottom: 5px;
-    color: #8d8a8a;
-    font-size: 25px;
-    font-weight: bold;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    margin-top: 30px;
-}
-
-.contato a {
     font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    color: #fff;
     text-decoration: none;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #3f3f46;
+    transition: border-color .18s ease, color .18s ease;
 }
+.contato .colun a:hover{ border-bottom-color: var(--accent); }
+.contato .colun br{ display: none; }
 
-
-
-footer {
-    color: #fff;
-    background-color: #000;
-    text-align: center;
-    position: relative;
-    bottom: 0;
-    padding: 30px;
-    font-size: 15px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-}
-
-.title {
-    display: flex;
-    align-items: center; /* Alinha verticalmente no centro */
-    gap: 4px; /* Espaçamento entre o ícone e o texto */
-    margin: 0; /* Remove margem padrão do h1 */
-    font-size: 24px; /* Ajuste o tamanho da fonte conforme necessário */
-}
-
-.icon {
-    display: inline-flex; /* Mantém o ícone dentro do fluxo do h1 */
-    vertical-align: middle; /* Alinha o ícone ao centro */
-}
-footer {
+/* ---- Rodapé ---- */
+footer{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
-  }
-
-  footer a {
-    text-decoration: none;
-  }
-
-  @media (max-width: 768px) {
-    footer {
-      flex-direction: column;
-      text-align: center;
-    }
-    
-    footer p,
-    footer a {
-      margin-bottom: 10px;
-    }
-  }
-
-@media screen and (max-width: 450px) {
-
-    .banner{
-        background-size: auto 100%;
-    }
-   .sobre{
-        flex-wrap: wrap;
-        height: 2600px;
-   }
-   .sobre > img{
-    width: 100%;
-    height: 100vh;
-
-    }
-    .sobre > div {
-        padding-top: 0;
-    }
-   .nome{
-    font-size: 40px;
-
-    }
-
-    .titulo{
-        font-size: 14px;
-
-    }
-    .logo > img{
-        width: 25px;
-        height: 25px;
-
-    }
-
-    .jornada{
-        padding-left: 10px;
-
-    }
-
-    .jornada > div{
-        width: 100%;
-
-    }
-    .jtitle{
-        font-size: 20px;
-        margin-left: 0;
-    }
-    .jtitle > h1{
-        font-size: 30px;    
-    }
-    .jprof{
-        font-size: 15px;
-    }
-    
-    .jprof > b{
-        font-size: 20px;
-    }
-    
-    .descript{
-        padding-left: 10px;
-        padding-right: 10px;
-        text-align: justify;
-    }
-
-    .certificados{
-        padding-left: 0;
-    }
-    .certificate{
-        width: 100%;
-    
-    }
-
-    .mensage{
-        padding: 0;
-        padding-top: 50px;
-        padding-bottom: 50px;
-        font-size: 22px;
-    }
-    
-    .contato {
-        padding-left: 0;
-    }
-    
-    .contato h1 {
-        font-size: 30px;
-    }
-    
-    .contato .colunas {
-        display: flex;
-        align-self: self-start;
-        flex-wrap: wrap;
-        
-    }
-    
-    .contato .colun{
-        margin-left: 30px;
-        margin-top: 100px;
-        text-align: center;
-    }
-    
-    .contato img {
-        width: 100%;
-        height: 100%;
-    }
-    
-    
+    gap: 16px;
+    padding: 22px 32px;
+    background: #000;
+    color: var(--dark-muted);
+    border-top: 1px solid var(--dark-line);
+    font-size: 14px;
 }
+footer a{ text-decoration: none; color: var(--dark-muted); }
+footer a:hover{ color: #fff; }
 
-
+/* ---- Responsivo ---- */
+@media (max-width: 900px){
+    .sobre .sec__inner{ grid-template-columns: 1fr; gap: 36px; }
+    .sobre img{ height: 380px; }
+    .contato .colunas{ grid-template-columns: 1fr; gap: 36px; }
+    .contato .coluna img{ height: 300px; }
+}
+@media (max-width: 768px){
+    .sec{ padding: 64px 0; }
+    .sec__inner{ padding: 0 16px; }
+    .sec .title, .sec .jtitle h1, .sobre h1{ font-size: 30px; gap: 12px; }
+    .sec .icon{ width: 44px; height: 44px; border-radius: 12px; }
+    .sec .icon img{ width: 22px !important; height: 22px !important; }
+    .sec__inner > p{ font-size: 16px; margin-bottom: 32px; }
+    .certificates-container{ grid-template-columns: 1fr; gap: 20px; }
+    .badges .certificates-container{ grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
+    .jornada ul{ padding-left: 24px; }
+    .jornada li::before{ left: -33px; width: 12px; height: 12px; }
+    .jprof{ font-size: 20px; }
+    .quote{ padding: 80px 0; }
+    .quote p::before{ font-size: 84px; }
+    .quote p{ font-size: 26px; }
+    footer{ flex-direction: column; text-align: center; }
+}
+@media screen and (max-width: 450px){
+    .banner{ background-size: auto 100%; }
+    .nome{ font-size: 40px; }
+    .titulo{ font-size: 14px; }
+    .logo > img{ width: 25px; height: 25px; }
+}
