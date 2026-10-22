@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SNS Security: o notebook foi para a assistência, e os segredos ficaram cifrados | Blog Igor Nascimento</title>
+  <meta name="description" content="Cifrar os .env antes de entregar o notebook virou uma ferramenta: núcleo no age, frase que nunca entra no Python, sessão em RAM que se destrói, o arquivo tratado como adversário, e a lista honesta do que não protege." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Segurança</span>
+      <h1>SNS Security: o notebook foi para a assistência, e os segredos ficaram cifrados</h1>
+      <p class="standfirst">Um SSD sem criptografia, uma assistência técnica que precisava do login, e uma dúzia de arquivos .env em texto claro. Uma conversa sobre a ferramenta que saiu disso: por que ela não implementa cifra nenhuma e delega ao age, por que a frase-senha são oito palavras no papel, como abrir um segredo sem que ele toque o disco, por que o próprio arquivo é tratado como adversário, e a lista do que ela não protege, que é parte do produto.</p>
+      <div class="meta"><span class="tag tag--accent">Segurança</span><span class="tag">Sistemas</span><span class="dot"></span><span>17 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O notebook que ia para a assistência</h2>
+    <p>Um dia o meu notebook precisou ir para a assistência técnica, e eu caí na conta de uma coisa óbvia que nunca tinha me incomodado: o técnico precisaria fazer login para testar a máquina, e mesmo que não precisasse, bastava tirar o SSD, ligar como disco secundário em outro computador e ler tudo. O disco não tinha criptografia. E "tudo", no caso, eram os arquivos <code>.env</code> de uma dúzia de projetos, chaves privadas de servidores, tokens de API, senhas de banco, credenciais de clientes. Nada disso estava escondido; estava em texto claro, em pastas com nomes óbvios, esperando.</p>
+    <p>A solução de curto prazo foi cifrar tudo que era sensível antes de entregar a máquina, e decifrar quando ela voltasse. A solução de longo prazo foi ligar a criptografia de disco inteiro, que hoje eu tenho e recomendo como base para qualquer pessoa. Mas ficou uma necessidade no meio: mesmo com o disco cifrado, há segredos que eu quero guardar num formato que sobreviva a um backup na nuvem, a um pendrive emprestado, a uma máquina alheia, e que seja aberto só quando eu precisar e só pelo tempo que eu precisar. Foi daí que saiu o <a href="https://github.com/IMNascimento/SNS_Security" target="_blank" rel="noopener">SNS Security</a>, e esse texto é sobre as decisões que ele carrega, porque em ferramenta de segurança as decisões importam mais do que as funcionalidades.</p>
+
+    <h2>O que ele faz, em dez comandos</h2>
+    <p>É um único script Python, sem servidor, sem nuvem, sem conta em lugar nenhum e sem nada instalado do PyPI. Ele cifra arquivos e pastas com uma frase-senha, abre o conteúdo numa sessão temporária que se destrói ao sair, e nunca modifica o arquivo cifrado.</p>
+<pre><code>./sns.py instalar-age          <span class="c"># traz o núcleo criptográfico, verificado, só na primeira vez</span>
+./sns.py doutor                <span class="c"># o que está pronto nesta máquina</span>
+./sns.py frase                 <span class="c"># gera 8 palavras; anote no papel</span>
+./sns.py cifrar .env           <span class="c"># -> .env.sns</span>
+./sns.py cifrar ~/chaves/ -o k.sns
+./sns.py abrir .env.sns        <span class="c"># mostra no pager, nada toca o disco</span>
+./sns.py abrir .env.sns --clip <span class="c"># vai para a área de transferência e é limpo depois</span>
+./sns.py abrir k.sns           <span class="c"># abre a pasta numa sessão em RAM, num subshell</span>
+./sns.py verificar k.sns       <span class="c"># confere integridade sem extrair</span>
+./sns.py limpar                <span class="c"># remove sessões órfãs</span></code></pre>
+    <p>Roda em Linux, macOS e Windows, e o único pré-requisito é o Python. O resto do texto é sobre o que está por trás de cada uma dessas linhas.</p>
+
+    <h2>A decisão mais importante: não implementar cifra nenhuma</h2>
+    <p>A primeira versão tinha formato próprio. Cabeçalho de 40 bytes, derivação de chave por Argon2id ou scrypt com um gigabyte de memória, ChaCha20-Poly1305 em blocos autenticados, tudo escrito por mim em Python com a biblioteca <code>cryptography</code>. Funcionava, tinha testes, e eu tinha orgulho. E tinha dois problemas que não se resolvem em Python, por mais cuidado que se tenha.</p>
+    <p>O primeiro: <strong>a frase-senha existia dentro do processo</strong>. Em Python, <code>del</code> não zera memória, strings e bytes são imutáveis, e o interpretador faz cópias fora do seu alcance, no <code>getpass</code>, no <code>.encode()</code>, numa realocação qualquer. Não há como garantir que a frase sumiu da RAM depois de usada. O segundo: <strong>o parse de um arquivo hostil morava em código meu</strong>, que ninguém auditou. Os parâmetros de derivação de chave vinham do cabeçalho, antes de qualquer autenticação, então um arquivo forjado declarando memória absurda derrubava a máquina de quem o abrisse. Esse é o tipo de bug que um formato próprio sempre tem e que só aparece quando alguém procura.</p>
+    <p>A versão 2 trocou o núcleo pelo <a href="https://age-encryption.org" target="_blank" rel="noopener">age</a>, uma ferramenta de cifra de arquivos com especificação pública, ChaCha20-Poly1305 em construção STREAM, chave derivada por scrypt, e auditoria pública da Trail of Bits em 2024. O meu script não cifra mais nada. Ele orquestra o age: gera a frase, empacota o conteúdo, decide onde o texto claro vive, destrói a sessão no fim, e não mente sobre nada disso. Os dois problemas sumiram por construção, não por correção: quem lê a frase é o age, do terminal de controle, no processo dele, e quem faz o parse do arquivo é o age também. Não existe mais código meu em que a frase entre, e portanto não existe código meu ali para dar errado.</p>
+    <div class="versus">
+      <div>
+        <h4>Ganha</h4>
+        <ul>
+          <li>A frase nunca entra no processo Python</li>
+          <li>Parse de arquivo hostil em código auditado, não no meu</li>
+          <li>Um <code>.sns</code> é um arquivo age comum: <code>age --decrypt</code> abre sem o script existir</li>
+          <li>Zero dependências do PyPI, em qualquer uso</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Paga</h4>
+        <ul>
+          <li>Depende de um binário externo, que precisa estar presente</li>
+          <li>O KDF ficou mais barato: scrypt de ~256 MiB em vez de 1 GiB</li>
+          <li><code>echo frase | ./sns.py cifrar x</code> não funciona, de propósito</li>
+          <li>O acervo do formato antigo precisa ser recifrado</li>
+        </ul>
+      </div>
+    </div>
+    <p>Sobre o KDF mais barato: a 88 bits de entropia na frase, a diferença entre 256 MiB e 1 GiB por tentativa não muda nada para força bruta. Quem carrega a segurança é o gerador de frase, e ele não mudou. E sobre o formato antigo: a versão 3 parou de lê-lo e removeu o comando de migração, porque era o único comando em que a frase ainda passava pela memória do Python. Um comando deletado é a única mitigação que não regride. Quem tem acervo antigo roda a versão 2 numa cópia separada para recifrar, e o script atual reconhece o cabeçalho velho e explica exatamente isso, em vez de dizer "arquivo corrompido" para um arquivo que está intacto, só velho.</p>
+
+    <h2>Oito palavras no papel</h2>
+    <p>Frase que humano inventa é ruim de duas formas ao mesmo tempo: difícil de lembrar e fácil de adivinhar, porque segue padrão. O comando <code>frase</code> sorteia oito palavras da lista BIP-39, a mesma lista de 2.048 palavras que as carteiras de Bitcoin usam, com o gerador de números aleatórios do sistema operacional. A lista foi escolhida por três propriedades práticas para quem vai escrever à mão: 2.048 palavras são exatamente 11 bits cada, então oito palavras são 88 bits de entropia, uma conta e não uma estimativa; cada palavra é única nos quatro primeiros caracteres, então uma letra borrada no papel ainda se reconstrói; e são curtas, em inglês, sem acento e sem caractere especial, então não há dúvida entre "ç" e "c" nem teclado em outro layout atrapalhando. O script confere o hash da lista a cada execução, porque uma lista adulterada para menos palavras geraria frases mais fracas sem ninguém notar.</p>
+    <p>88 bits é suficiente? Cada tentativa de adivinhação custa uma derivação scrypt completa com cerca de 256 MiB de RAM, e é essa memória que quebra o ataque: força bruta industrial acontece em GPU e ASIC, onde o gargalo é memória por núcleo. 2⁸⁸ tentativas a esse custo não fecham em orçamento nenhum. Quem quer margem que não dependa do KDF pede doze palavras e tem 132 bits.</p>
+    <div class="callout callout--dark">
+      <span class="label">A regra, dita de frente</span>
+      <p>Perder a frase é perder os dados. Não existe recuperação, não existe "esqueci minha senha", e é assim de propósito: não existe porta dos fundos para você e, por consequência, não existe para mais ninguém. A frase vai para o papel, antes de cifrar qualquer coisa, e nunca para um arquivo desta máquina.</p>
+    </div>
+
+    <h2>Abrir sem gravar: onde o texto claro vive</h2>
+    <p>Cifrar é a parte fácil. A parte que define a ferramenta é o que acontece quando você precisa <em>usar</em> o segredo. A maioria das soluções decifra para um arquivo no disco e confia que você vai apagar depois, e apagar em SSD não garante nada: o nivelamento de desgaste e o journal do sistema de arquivos podem manter os blocos antigos por tempo indefinido. A proteção de verdade é nunca ter gravado o texto claro no disco.</p>
+    <table>
+      <thead><tr><th>Situação</th><th>O que acontece</th></tr></thead>
+      <tbody>
+        <tr><td>Arquivo único</td><td>Vai para o pager por pipe, sem tocar o disco. Ao sair, o conteúdo some com a tela alternativa do terminal</td></tr>
+        <tr><td>Arquivo único, <code>--clip</code></td><td>Vai para a área de transferência e é apagado dela depois de 25 segundos</td></tr>
+        <tr><td>Pasta</td><td>Extraída numa sessão temporária com acesso só do seu usuário, e abre um subshell já dentro dela. Você copia o que precisa e sai; nesse momento os arquivos são sobrescritos e removidos</td></tr>
+        <tr><td>Acima de 64 MiB</td><td>Abre sempre como pasta, em fluxo, sem carregar tudo na memória</td></tr>
+        <tr><td>Precisa em claro no disco</td><td>Só com <code>--para CAMINHO</code>, explícito, e o script avisa o que acabou de fazer</td></tr>
+      </tbody>
+    </table>
+    <p>Onde a sessão temporária mora é a maior diferença entre os três sistemas, e é por isso que o comando <code>doutor</code> existe: ele diz, na sua máquina, qual dos três casos é o seu. No Linux, a sessão vai para o <code>/dev/shm</code>, que é RAM. Não serve o <code>/tmp</code>, que na maioria das instalações é disco de verdade. No macOS não existe <code>/dev/shm</code>, e o <code>/tmp</code> é APFS, com Time Machine e snapshots locais que podem ter copiado antes de você apagar; então cada abertura cria um disco em RAM próprio, sem sudo, e o joga fora no fim. Se a criação falhar ou o tamanho passar de um quarto da memória física, o programa recusa em vez de cair para o disco caladamente. No Windows não existe tmpfs: a sessão de uma pasta vai para o disco, e o script avisa isso em voz alta, com o caminho exato, antes de pedir a frase. Quem quer fechar esse furo monta um disco em RAM e aponta a variável <code>SNS_TEMP</code> para ele. Arquivo único, que é o caso de senha e de chave, nunca abre sessão e não escreve em disco em sistema nenhum.</p>
+    <p>Dentro da sessão, nada do que você digita vira arquivo. O subshell roda com o histórico desligado, e o pager também, porque uma busca digitada dentro do <code>less</code> ficava gravada em <code>~/.lesshst</code> e sobrevivia à sessão. Ao sair, o grupo de processos inteiro é morto, não só o shell, senão um editor ou um <code>scp</code> esquecido ficaria órfão segurando descritores dos arquivos. A destruição roda em <code>finally</code>, em <code>atexit</code> e em handlers de sinal, e há um <code>--timeout</code> para a janela que você esqueceu aberta. Se o processo morrer de um sinal que não dá para interceptar, a sessão fica órfã e a próxima execução a varre.</p>
+
+    <h2>O arquivo como adversário</h2>
+    <p>O adversário óbvio é quem tem o seu disco sem a sua frase. Há um menos óbvio, e dele saíram duas das fragilidades mais interessantes do projeto: <strong>o próprio arquivo</strong>. Alguém te manda um <code>.sns</code> junto com a frase, "o arquivo é esse, a senha é essa", e a partir daí o conteúdo que o programa interpreta foi escolhido por quem forjou o arquivo. A frase certa não faz o conteúdo ser honesto; ela só prova que o arquivo chegou como saiu.</p>
+    <p>O caso mais recente foi o tar esparso. O conteúdo vai sempre dentro de um tar, e o programa decide se abre em memória ou em fluxo pelo tamanho do arquivo cifrado, sob a premissa de que o age não comprime e o tar só adiciona bytes. A premissa é falsa para um membro esparso: o formato GNU declara um tamanho de N gigabytes gastando 512 bytes, porque buraco não ocupa espaço. Um arquivo de 1,7 KiB passava pelo limite, caía no caminho de memória, e a leitura materializava os N gigabytes na RAM de quem abria. A regra que ficou é que <strong>tudo que vem de dentro do arquivo é entrada hostil</strong>: nome de membro, tamanho declarado, quantidade de membros, tudo é conferido antes de virar memória, arquivo ou caminho no disco. Membro esparso é recusado antes de qualquer byte ser lido, e a recusa não custa nada, porque a biblioteca padrão do Python não sabe escrever esse formato, então nenhum arquivo gerado pelo próprio programa cai nela.</p>
+    <p>Na mesma linha, frase errada e arquivo alterado produzem <em>uma mensagem só</em>. Dizer "a frase estava certa, o arquivo é que está quebrado" seria dar um oráculo de graça a quem estragou o arquivo. E os nomes dos arquivos internos não aparecem no cifrado, porque estão dentro do tar: um <code>.sns</code> não revela que tem um <code>servidor.pem</code> lá dentro.</p>
+
+    <h2>Instalar o núcleo sem confiar em ninguém no caminho</h2>
+    <p>O age precisa estar na máquina, e "instale pelo seu gerenciador de pacotes" são três respostas diferentes para três sistemas, nenhuma das quais serve numa máquina sem administrador. O comando <code>instalar-age</code> baixa o pacote oficial da versão fixada no código, confere o SHA-256 contra uma tabela que mora dentro do próprio script, versionada, extrai só o binário e o deixa numa pasta ao lado. Se o hash não bater, nada é escrito no disco, nem parcialmente.</p>
+    <p>O que essa conferência promete, e nada além: espelho malicioso, proxy no meio do caminho ou conta comprometida no GitHub não trocam o binário sem que o hash mude. O que ela não cobre é o pacote já nascer comprometido na origem, e isso vale para o apt e para o brew também. Por isso a busca pelo age prefere, nesta ordem, o caminho que você apontar à mão, depois o do sistema, depois o da pasta local: o do sistema recebe atualização de segurança da distribuição, e o local fica na versão que você baixou até você baixar outra.</p>
+
+    <h2>O que isso não protege, dito antes que alguém descubra</h2>
+    <p>Em ferramenta de segurança, a lista do que não funciona é parte do produto. A minha, em ordem de importância:</p>
+    <ul>
+      <li><strong>Máquina comprometida na hora em que você digita a frase.</strong> Keylogger vence qualquer formato de arquivo. Nada aqui ajuda.</li>
+      <li><strong>Swap em claro.</strong> RAM é paginável, e o kernel pode mandar páginas da sessão para o disco. O script lê a configuração de swap e avisa quando não consegue confirmar que ela é cifrada, em cada sistema do seu jeito. Avisar é tudo que código consegue fazer aqui; o resto é operacional.</li>
+      <li><strong>Área de transferência.</strong> Gerenciadores de histórico gravam em disco, o Windows sincroniza com a nuvem, o macOS manda o que você copiou para os outros aparelhos da conta pela rede, e em X11 qualquer programa do display lê a seleção sem pedir licença. O <code>--clip</code> recusa X11 sem um aceite explícito e avisa a cada uso nos outros.</li>
+      <li><strong>Disco sem criptografia.</strong> Isto protege o arquivo cifrado, não a máquina. Restos de qualquer texto claro que já passou pelo disco podem sobreviver no journal. Criptografia de disco inteiro é a base que complementa isso, não que substitui. Foi a lição do notebook.</li>
+      <li><strong>O que você copia para fora da sessão</strong> volta a ser texto claro. É inerente ao uso.</li>
+      <li><strong>Encerrar a sessão é melhor esforço, não contenção.</strong> Um processo que saia do grupo sobrevive. Contenção de verdade exigiria um cgroup por sessão.</li>
+      <li><strong>O tamanho do conteúdo vaza.</strong> O arredondamento do tar embaralha os tamanhos pequenos por acidente, não por projeto. Padding é possível e não está implementado.</li>
+      <li><strong>Coerção e cold boot.</strong> Não há volume oculto nem negação plausível. E RAM retém dados por segundos a minutos depois de desligar; contra adversário com acesso físico imediato, desligue a máquina, não suspenda.</li>
+    </ul>
+    <div class="callout">
+      <span class="label">O que ainda preciso de outras pessoas</span>
+      <p>As camadas de macOS e de Windows foram escritas a partir da documentação e testadas contra atores de mentira no caminho, programas falsos que anotam como foram chamados e respondem como os de verdade responderiam. O modo de falha esperado é "não abre", nunca "abre no lugar errado", porque toda falha recusa em vez de cair para o disco. Mas nenhuma das duas rodou num Mac ou num Windows de verdade pelas minhas mãos, e a contribuição mais valiosa agora é alguém rodar o <code>doutor</code> lá e me contar.</p>
+    </div>
+
+    <h2>O que mudou na minha rotina</h2>
+    <p>Os arquivos <code>.env</code> dos projetos que não estão em uso vivem cifrados, e os que estão em uso são abertos pela sessão quando preciso ler uma credencial. As chaves de servidor ficam numa pasta cifrada que vai para o backup na nuvem sem medo, porque o arquivo cifrado pode ir para qualquer lugar; a frase está no papel, em dois lugares. E quando uma máquina precisa sair da minha mão, por manutenção, por empréstimo ou por venda, o que sai com ela não me tira o sono. A criptografia de disco inteiro cuida da máquina; o SNS cuida dos segredos que precisam sobreviver fora dela.</p>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>Nasceu de um notebook indo para a assistência sem disco cifrado. Hoje o disco é cifrado, e a ferramenta ficou para os segredos que precisam viver fora da máquina.</li>
+      <li>A decisão central é não implementar cifra: o núcleo é o age, auditado, e a frase nunca entra no processo Python. Isso fechou por construção dois problemas que não se resolvem em Python.</li>
+      <li>Oito palavras BIP-39 no papel são 88 bits, uma conta e não uma estimativa, e com scrypt por tentativa não fecham em orçamento nenhum.</li>
+      <li>Abrir nunca grava: pager, área de transferência ou sessão em RAM, com histórico desligado e grupo de processos morto no fim. Cada sistema promete uma coisa diferente, e o <code>doutor</code> diz qual.</li>
+      <li>O arquivo é adversário: tudo que vem de dentro dele é entrada hostil. E a lista do que a ferramenta não protege é parte do produto.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="prompt2drawio.html" data-slug="prompt2drawio" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="21" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="13" y="23" width="10" height="7" rx="1.5" fill="#bb244e"/><path d="M10 13v5h16v-5M18 18v5" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Prompt2Drawio: o modelo escreve o JSON, o código desenha o diagrama nativo do draw.io</h3>
+          <p>Nem Mermaid, nem XML pelo modelo. Uma especificação JSON pequena, estilos colhidos de dentro do draw.io, layout por camadas determinístico, e o que sobra para o modelo errar quando só o conteúdo é dele.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>14 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="spectro.html" data-slug="spectro" data-tags="Áudio|Processamento de sinais|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="22" rx="2.5" stroke="#111827" stroke-width="2"/><rect x="8" y="18" width="3" height="7" fill="#bb244e"/><rect x="12" y="12" width="3" height="13" fill="#bb244e" opacity=".8"/><rect x="16" y="9" width="3" height="16" fill="#bb244e"/><rect x="20" y="14" width="3" height="11" fill="#bb244e" opacity=".7"/><rect x="24" y="11" width="3" height="14" fill="#bb244e" opacity=".55"/><path d="M11 31h14" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Spectro: um espectrograma inteiro no navegador, sem dependências, e as contas que cada parâmetro esconde</h3>
+          <p>De um Float32Array a um canvas, sem dependências. A janela BH7 como aposta, o pico global como referência, Mel como remapeamento de exibição, a FFT própria como limite real, e o que entra na próxima versão maior.</p>
+          <div class="meta"><span class="tag tag--accent">Áudio</span><span class="tag">Processamento de sinais</span><span class="tag">Frontend</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pomodoro.html" data-slug="pomodoro" data-tags="Produtividade|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="20" r="11" stroke="#111827" stroke-width="2"/><path d="M18 20V13" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M18 20l5 3" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M14 5h8M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="20" r="1.8" fill="#bb244e"/></svg></span>
+          <h3>Pomodoro além do 25/5: o que a técnica pede de verdade, onde ela não serve, e o timer que fiz para rodá-la</h3>
+          <p>Atenção contínua é o recurso escasso. A técnica Pomodoro inteira, não só o timer, onde ela não serve e o que eu ajusto, e o PomoFocus: uma página sem servidor que decide a pausa por você e registra o dia.</p>
+          <div class="meta"><span class="tag tag--accent">Produtividade</span><span class="tag">Frontend</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="trello_agentic.html" data-slug="trello_agentic" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="14" rx="1.5" fill="#bb244e"/><rect x="19" y="10" width="8" height="8" rx="1.5" stroke="#111827" stroke-width="1.8"/><path d="M21 14l1.5 1.5L25 12" stroke="#111827" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Trello Agentic: um agente rodando na sua máquina, com Ollama, LangGraph e cinco ferramentas</h3>
+          <p>Uma frase vira um card completo no Trello, com o modelo rodando local pelo Ollama. A docstring é a interface, o segredo nunca entra no contexto, e o que precisa ser exato fica no código. Onde o modelo tropeça e o que vem a seguir.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="nahas.html" data-slug="nahas" data-tags="Séries temporais|Deep Learning">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 27L12 19l5 4 6-9 8 6" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h26" stroke="#bb244e" stroke-width="2" stroke-dasharray="3 3"/><circle cx="23" cy="14" r="2.4" fill="#bb244e"/></svg></span>
+          <h3>Nahas: uma bancada para prever preço em três frameworks, e o que ela cobra em troca</h3>
+          <p>LSTM e Transformer em três frameworks atrás de uma interface só. O que a bancada entrega, o que cobra, e o que custou pegar os problemas de metodologia a tempo: semanas de execuções descartadas e refeitas.</p>
+          <div class="meta"><span class="tag tag--accent">Séries temporais</span><span class="tag">Deep Learning</span><span class="dot"></span><span>21 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="direcao_recusa.html" data-slug="direcao_recusa" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2" opacity=".5"/><path d="M8 26 L26 10" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 10h6v6" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="14" r="1.6" fill="#111827"/><circle cx="23" cy="24" r="1.6" fill="#111827"/><circle cx="14" cy="23" r="1.6" fill="#111827"/></svg></span>
+          <h3>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h3>
+          <p>Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ollama_para_vllm.html" data-slug="ollama_para_vllm" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="4" y="7" width="28" height="18" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M8 20l5-6 4 4 4-7 4 5 3-3" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30h12" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h3>
+          <p>Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

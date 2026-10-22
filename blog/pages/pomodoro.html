@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pomodoro além do 25/5: o que a técnica pede de verdade, onde ela não serve, e o timer que fiz para rodá-la | Blog Igor Nascimento</title>
+  <meta name="description" content="Atenção contínua é o recurso escasso. A técnica Pomodoro inteira, não só o timer, onde ela não serve e o que eu ajusto, e o PomoFocus: uma página sem servidor que decide a pausa por você e registra o dia." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Produtividade</span>
+      <h1>Pomodoro além do 25/5: o que a técnica pede de verdade, onde ela não serve, e o timer que fiz para rodá-la</h1>
+      <p class="standfirst">O dia que termina cansado e sem entrega não é falta de tempo, é falta de atenção contínua. Uma conversa sobre a técnica Pomodoro inteira, não só o timer: a tarefa declarada antes, o bloco indivisível, a pausa que você não decide, as interrupções registradas em vez de atendidas, e a estimativa comparada com o realizado. Sobre onde ela atrapalha e o que eu mudo, e sobre o PomoFocus, uma página sem servidor que traduz a técnica em interface.</p>
+      <div class="meta"><span class="tag tag--accent">Produtividade</span><span class="tag">Frontend</span><span class="dot"></span><span>15 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O problema não é tempo, é atenção</h2>
+    <p>Todo mundo que trabalha com código conhece o dia que termina sem nada pronto. Não foi preguiça: foram oito horas de reuniões curtas, mensagens respondidas na hora, "só uma olhada" num pull request, uma aba de documentação que virou dez. No fim, a tarefa que importava não andou, e a sensação é de cansaço sem entrega. O diagnóstico que demorei a aceitar é que o recurso escasso não era tempo. Eu tinha tempo. O que eu não tinha era atenção contínua, em blocos grandes o bastante para resolver algo difícil.</p>
+    <p>Atenção tem duas propriedades que tornam isso pior do que parece. A primeira é que ela não volta instantaneamente: depois de uma interrupção, parte da cabeça continua na coisa anterior por minutos, e o retorno ao problema original tem um custo de recarga. A segunda é que ela se gasta em decisões pequenas, não só nas grandes. Decidir se respondo agora ou depois, se abro ou não a notificação, se vale trocar de tarefa, cada uma dessas decisões cobra um pouco, e no fim do dia a soma é o que sobrou. Qualquer técnica de produtividade que funcione para mim precisa atacar essas duas propriedades: proteger blocos de atenção e tirar decisões da frente.</p>
+
+    <h2>O que a técnica Pomodoro é, de verdade</h2>
+    <p>A técnica foi criada por Francesco Cirillo no fim dos anos 1980, com um timer de cozinha em formato de tomate, daí o nome. A versão que circula por aí é "trabalhe 25 minutos, descanse 5". Isso é a parte visível e é a menos importante. A técnica inteira tem seis passos, e os que fazem diferença são os que ninguém segue.</p>
+    <ol>
+      <li><strong>Escolher a tarefa.</strong> Antes de ligar o timer, decidir o que vai ser feito. Uma coisa, com nome, pequena o bastante para caber em alguns pomodoros.</li>
+      <li><strong>Ligar o timer.</strong> Vinte e cinco minutos no original. O número importa menos do que o fato de ser fixo e visível.</li>
+      <li><strong>Trabalhar até tocar.</strong> Sem trocar de tarefa, sem abrir nada que não seja a tarefa. Se terminar antes, revisar o que foi feito até o timer tocar.</li>
+      <li><strong>Marcar.</strong> Um traço no papel. O pomodoro concluído é uma unidade de trabalho registrada, não só tempo passado.</li>
+      <li><strong>Pausa curta.</strong> Cinco minutos, longe da tela. De pé, água, janela.</li>
+      <li><strong>Pausa longa a cada quatro.</strong> Quinze a trinta minutos depois do quarto pomodoro. É o que impede o método de virar uma esteira.</li>
+    </ol>
+    <p>Em volta dos seis passos há três regras que são o coração do método e que as versões simplificadas descartam:</p>
+    <ul>
+      <li><strong>O pomodoro é indivisível.</strong> Não existe meio pomodoro. Se foi interrompido a ponto de parar, ele é anulado e começa de novo. Parece punitivo; é o que dá valor à unidade. Um traço no papel só significa alguma coisa se todo traço representa a mesma coisa.</li>
+      <li><strong>Interrupções são registradas, não atendidas.</strong> Cirillo separa as internas, a sua própria cabeça lembrando que precisa responder alguém, das externas, alguém chegando com uma pergunta. As internas viram uma anotação na lista de "depois" e você volta. As externas seguem o protocolo informar, negociar, agendar e retornar: "estou no meio de algo, posso te procurar em vinte minutos?". Quase sempre a resposta é sim.</li>
+      <li><strong>Estimar em pomodoros e comparar no fim.</strong> No começo do dia, cada tarefa recebe um número de pomodoros previstos. No fim, o número real fica ao lado. É o passo que transforma a técnica em instrumento de medição, e é o que ensina, em poucas semanas, que a sua estimativa está sistematicamente errada por um fator que você passa a conhecer.</li>
+    </ul>
+    <div class="callout">
+      <span class="label">A parte que faz a técnica funcionar</span>
+      <p>Não é o timer. É a combinação de três coisas: uma única tarefa declarada antes de começar, um bloco de tempo com fim visível, e uma pausa obrigatória que não depende de você "sentir" que precisa. Juntas elas tiram da frente as decisões que mais gastam atenção: o que fazer agora, se já posso parar, se vale atender a interrupção. O timer é só o mecanismo que torna as três automáticas.</p>
+    </div>
+
+    <h2>Por que isso funciona, em termos que eu consigo defender</h2>
+    <p>Há explicações demais para a técnica, e a maioria é boa demais para ser verdade. As que eu consigo sustentar com a minha própria experiência são quatro.</p>
+    <p><strong>Começar é a parte cara.</strong> A resistência a uma tarefa difícil é quase toda na largada. "Vou trabalhar nisso a tarde inteira" é uma promessa assustadora; "vou trabalhar nisso por vinte e cinco minutos" não é. O timer reduz o compromisso ao tamanho em que ele deixa de ser assustador, e uma vez dentro, continuar é mais fácil do que parar.</p>
+    <p><strong>Prazo fixo elimina a expansão do trabalho.</strong> Tarefa sem limite se expande até ocupar o tempo disponível, e a expansão vem na forma de polimento que ninguém pediu, de pesquisa que não era necessária, de refatoração paralela. Um bloco com fim visível força a pergunta "o que dá para entregar até o timer tocar", e a resposta costuma ser a coisa certa.</p>
+    <p><strong>A pausa obrigatória evita o declínio que você não percebe.</strong> Atenção cai com o tempo de uso contínuo, e cai sem avisar: a pessoa continua na tarefa, só que mais lenta e cometendo mais erros, convencida de que está rendendo igual. A pausa a cada vinte e cinco minutos acontece antes do declínio, não depois. É a diferença entre manutenção preventiva e conserto.</p>
+    <p><strong>O registro muda o comportamento.</strong> Contar pomodoros por tarefa produz um dado que não existia: quanto cada coisa custa de verdade. Depois de algumas semanas vendo que "arrumar aquele teste" custa quatro pomodoros e não um, a estimativa seguinte já sai calibrada. E ver que o dia rendeu três pomodoros, não oito, é uma informação dura e útil sobre onde a atenção foi parar.</p>
+
+    <h2>Onde a técnica não serve, e o que eu mudo</h2>
+    <p>A técnica foi desenhada para trabalho individual e interruptível. Há trabalho que não é assim, e forçar o método nele é pior do que não usar.</p>
+    <table class="cols3">
+      <thead><tr><th>Situação</th><th>O que acontece com 25/5</th><th>O que eu faço</th></tr></thead>
+      <tbody>
+        <tr><td>Depuração profunda, quando o modelo mental do problema leva vinte minutos para ser montado</td><td>O timer toca no momento em que a cabeça finalmente está inteira no problema; a pausa destrói o modelo e os próximos dez minutos são para remontá-lo</td><td>Blocos de 50 com 10 de pausa, ou 90 com 20. O método é o mesmo; a unidade muda</td></tr>
+        <tr><td>Programação em par ou sessão de desenho de arquitetura com outra pessoa</td><td>Duas pessoas com timers independentes é caos; uma pessoa impondo pausa à outra é desconforto</td><td>Combinar o bloco antes. O timer é compartilhado ou não existe</td></tr>
+        <tr><td>Dia de reuniões</td><td>Não existe bloco de 25 minutos livre; cada tentativa é anulada por uma chamada</td><td>Não usar. Agrupar as reuniões e reservar uma manhã inteira de outro dia</td></tr>
+        <tr><td>Tarefas de dois minutos em série: revisar PRs pequenos, responder issues</td><td>Um pomodoro inteiro para uma tarefa de dois minutos cria ansiedade de "preencher"</td><td>Um pomodoro para o lote, não para a tarefa. A tarefa declarada é "limpar a fila"</td></tr>
+        <tr><td>Trabalho criativo de começo em branco: escrever um texto, desenhar uma API nova</td><td>Funciona bem. O timer tira a paralisia da página em branco</td><td>Vinte e cinco minutos mesmo, com a regra de não apagar nada durante o bloco</td></tr>
+      </tbody>
+    </table>
+    <p>A regra que extraio dessa tabela: <strong>a duração do bloco deve ser maior que o tempo de aquecimento da tarefa</strong>. Se levo vinte minutos para carregar o contexto de um problema, um bloco de vinte e cinco é um desperdício de aquecimento. Se o contexto cabe em dois minutos, vinte e cinco é generoso. A técnica original fixa o número para que você não negocie consigo mesmo a cada vez, e eu respeito isso: a negociação é feita uma vez, de manhã, por tipo de tarefa, nunca durante o bloco.</p>
+    <p>O outro ajuste é sobre a pausa longa. Quinze minutos a cada quatro pomodoros são duas horas de trabalho e vinte minutos de pausa curta acumulada. Para mim, a pausa longa só funciona se for realmente longa, com almoço ou caminhada, e se for respeitada mesmo quando o trabalho está indo bem. É exatamente quando está indo bem que eu quero pular, e é exatamente quando pular que o resto do dia desaba.</p>
+
+    <h2>O que eu uso para rodar a técnica</h2>
+    <p>Durante anos usei timer de celular, e o problema do celular é que ele é o maior gerador de interrupções que existe, então usá-lo como instrumento de foco é levar o incêndio para apagar o fogo. Depois usei aplicativos que pediam conta, sincronizavam com a nuvem, ofereciam planos premium e mandavam e-mail de "você não completou sua meta". Nenhum deles era um timer; eram produtos que tinham um timer dentro. O que eu queria era um timer com as três coisas que a técnica exige, tarefa declarada, bloco fixo e pausa automática, mais o registro no fim do dia, e nada além disso.</p>
+    <p>Foi daí que saiu o <a href="https://github.com/IMNascimento/PomoFocus" target="_blank" rel="noopener">PomoFocus</a>, que roda direto no navegador em <a href="https://imnascimento.github.io/PomoFocus/" target="_blank" rel="noopener">imnascimento.github.io/PomoFocus</a>. É uma página só, HTML, CSS e JavaScript puro, sem servidor, sem conta, sem dependência. As decisões de desenho são a técnica traduzida em interface:</p>
+    <ul>
+      <li><strong>A atividade atual aparece em cima do timer.</strong> Antes de iniciar, você escreve o que vai fazer, e o texto fica visível durante todo o bloco. É o passo um da técnica, "escolher a tarefa", transformado em algo que você não consegue pular sem notar. A atividade fica guardada no navegador, então ao reabrir a página ela continua lá.</li>
+      <li><strong>Três modos, um ciclo automático.</strong> Pomodoro, pausa curta e pausa longa, com 25, 5 e 15 minutos por padrão, ajustáveis nas configurações e lembrados entre sessões. Quando o pomodoro termina, o app entra sozinho na pausa; quando a pausa termina, volta sozinho ao trabalho; a cada quatro pomodoros, a pausa é a longa. O próximo bloco começa automaticamente três segundos depois do anterior. Essa escolha é deliberada e é a mais importante: <em>você não decide se vai fazer a pausa</em>. Ela acontece. Decidir é a parte que gasta atenção, e a técnica existe para tirar essa decisão de você.</li>
+      <li><strong>O anel de progresso e os últimos dez segundos.</strong> O timer é um círculo que se completa, grande, lido de longe. Nos últimos dez segundos ele pulsa. É o aviso de "termine a frase, salve o arquivo", que o timer de cozinha original dava com o barulho do mecanismo.</li>
+      <li><strong>Aviso que não depende de aba aberta.</strong> Quando o bloco termina, toca um som curto gerado pelo próprio navegador, sem arquivo de áudio, e dispara uma notificação do sistema se você permitiu. Dá para deixar a aba atrás do editor e confiar que vai ser avisado.</li>
+      <li><strong>Registro por atividade e relatório no fim do dia.</strong> Cada pomodoro concluído entra num histórico com a atividade, a hora e a duração, e a tela de estatísticas mostra quantos foram, quanto tempo de foco somaram e quantas atividades diferentes apareceram. Um botão baixa tudo como um arquivo de texto com o resumo por atividade e o histórico detalhado. É o passo quatro da técnica, "marcar", e o que permite comparar estimado com realizado no fim do dia.</li>
+    </ul>
+    <div class="callout callout--dark">
+      <span class="label">A decisão de não ter servidor</span>
+      <p>O histórico da sessão vive na memória da página, e as configurações e a atividade ficam no armazenamento local do navegador. Nada sai da máquina. Isso compra três coisas: privacidade total, porque o que você está fazendo às 15h não é dado de ninguém; custo zero, porque uma página estática no GitHub Pages não tem fatura; e simplicidade, porque não há login, sincronização nem versão do servidor para manter. O preço é que o histórico do dia acaba com a aba. Por isso o relatório é um arquivo baixável e a página avisa antes de fechar se há pomodoros registrados. Para mim, um arquivo de texto por dia numa pasta é um registro melhor do que um painel na nuvem, porque é meu e porque eu abro.</p>
+    </div>
+    <p>O que o PomoFocus não faz também é escolha. Não tem lista de tarefas, porque a lista já existe em outro lugar, no Trello, no quadro do time, e duplicá-la é criar uma segunda fonte de verdade. Não tem metas diárias nem sequências de dias, porque a técnica não é sobre gamificação e esse tipo de incentivo cobra mais atenção do que devolve. Não tem estatística semanal, porque o relatório diário é o grão certo: o que me interessa é quanto cada tarefa custou, e isso cabe num arquivo por dia.</p>
+
+    <h2>O que mudou depois de alguns meses</h2>
+    <p>Três coisas, nessa ordem de importância. A primeira é que passei a saber quanto as coisas custam. "Essa migração leva uma tarde" virou "essa migração leva doze pomodoros", e doze pomodoros com pausas e interrupções é um dia e meio, não uma tarde. A estimativa ficou mais honesta porque passou a ter unidade.</p>
+    <p>A segunda é que as interrupções internas diminuíram. A primeira semana foi uma lista enorme de "depois": verificar e-mail, olhar o deploy, responder a mensagem. Com o tempo, a cabeça aprendeu que esses impulsos têm lugar para ir, a lista, e param de insistir. Não desapareceram; ficaram administráveis.</p>
+    <p>A terceira é que o fim do dia tem um número. Três pomodoros num dia de muita reunião não é fracasso; é a medida do que o dia permitiu, e serve para a conversa seguinte sobre quantas reuniões cabem numa semana. Oito pomodoros num dia limpo é o teto realista, e saber o teto evita a promessa de dez.</p>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>O recurso escasso é atenção contínua, não tempo. Ela não volta de imediato depois de uma interrupção e se gasta em decisões pequenas.</li>
+      <li>A técnica Pomodoro é mais do que 25/5: uma tarefa declarada antes, um bloco indivisível, pausa obrigatória, interrupções registradas em vez de atendidas, e estimativa comparada com o realizado.</li>
+      <li>A duração do bloco deve ser maior que o aquecimento da tarefa. Depuração profunda pede 50 ou 90; fila de tarefas pequenas pede um bloco para o lote; dia de reunião pede não usar.</li>
+      <li>O PomoFocus é a técnica em uma página: atividade visível, ciclo automático que decide a pausa por você, aviso fora da aba, registro por atividade e relatório em arquivo. Sem servidor, sem conta, sem nada que gere interrupção.</li>
+      <li>O ganho real é medir: saber quanto cada tarefa custa, ter para onde mandar os impulsos, e fechar o dia com um número em vez de uma sensação.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="prompt2drawio.html" data-slug="prompt2drawio" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="21" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="13" y="23" width="10" height="7" rx="1.5" fill="#bb244e"/><path d="M10 13v5h16v-5M18 18v5" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Prompt2Drawio: o modelo escreve o JSON, o código desenha o diagrama nativo do draw.io</h3>
+          <p>Nem Mermaid, nem XML pelo modelo. Uma especificação JSON pequena, estilos colhidos de dentro do draw.io, layout por camadas determinístico, e o que sobra para o modelo errar quando só o conteúdo é dele.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>14 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="spectro.html" data-slug="spectro" data-tags="Áudio|Processamento de sinais|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="22" rx="2.5" stroke="#111827" stroke-width="2"/><rect x="8" y="18" width="3" height="7" fill="#bb244e"/><rect x="12" y="12" width="3" height="13" fill="#bb244e" opacity=".8"/><rect x="16" y="9" width="3" height="16" fill="#bb244e"/><rect x="20" y="14" width="3" height="11" fill="#bb244e" opacity=".7"/><rect x="24" y="11" width="3" height="14" fill="#bb244e" opacity=".55"/><path d="M11 31h14" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Spectro: um espectrograma inteiro no navegador, sem dependências, e as contas que cada parâmetro esconde</h3>
+          <p>De um Float32Array a um canvas, sem dependências. A janela BH7 como aposta, o pico global como referência, Mel como remapeamento de exibição, a FFT própria como limite real, e o que entra na próxima versão maior.</p>
+          <div class="meta"><span class="tag tag--accent">Áudio</span><span class="tag">Processamento de sinais</span><span class="tag">Frontend</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="sns_security.html" data-slug="sns_security" data-tags="Segurança|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="7" y="15" width="22" height="15" rx="3" stroke="#111827" stroke-width="2"/><path d="M12 15v-4a6 6 0 0 1 12 0v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="22" r="2.4" fill="#bb244e"/><path d="M18 24v3" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+          <h3>SNS Security: o notebook foi para a assistência, e os segredos ficaram cifrados</h3>
+          <p>Cifrar os .env antes de entregar o notebook virou uma ferramenta: núcleo no age, frase que nunca entra no Python, sessão em RAM que se destrói, o arquivo tratado como adversário, e a lista honesta do que não protege.</p>
+          <div class="meta"><span class="tag tag--accent">Segurança</span><span class="tag">Sistemas</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="trello_agentic.html" data-slug="trello_agentic" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="14" rx="1.5" fill="#bb244e"/><rect x="19" y="10" width="8" height="8" rx="1.5" stroke="#111827" stroke-width="1.8"/><path d="M21 14l1.5 1.5L25 12" stroke="#111827" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Trello Agentic: um agente rodando na sua máquina, com Ollama, LangGraph e cinco ferramentas</h3>
+          <p>Uma frase vira um card completo no Trello, com o modelo rodando local pelo Ollama. A docstring é a interface, o segredo nunca entra no contexto, e o que precisa ser exato fica no código. Onde o modelo tropeça e o que vem a seguir.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="nahas.html" data-slug="nahas" data-tags="Séries temporais|Deep Learning">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 27L12 19l5 4 6-9 8 6" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h26" stroke="#bb244e" stroke-width="2" stroke-dasharray="3 3"/><circle cx="23" cy="14" r="2.4" fill="#bb244e"/></svg></span>
+          <h3>Nahas: uma bancada para prever preço em três frameworks, e o que ela cobra em troca</h3>
+          <p>LSTM e Transformer em três frameworks atrás de uma interface só. O que a bancada entrega, o que cobra, e o que custou pegar os problemas de metodologia a tempo: semanas de execuções descartadas e refeitas.</p>
+          <div class="meta"><span class="tag tag--accent">Séries temporais</span><span class="tag">Deep Learning</span><span class="dot"></span><span>21 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="direcao_recusa.html" data-slug="direcao_recusa" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2" opacity=".5"/><path d="M8 26 L26 10" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 10h6v6" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="14" r="1.6" fill="#111827"/><circle cx="23" cy="24" r="1.6" fill="#111827"/><circle cx="14" cy="23" r="1.6" fill="#111827"/></svg></span>
+          <h3>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h3>
+          <p>Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ollama_para_vllm.html" data-slug="ollama_para_vllm" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="4" y="7" width="28" height="18" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M8 20l5-6 4 4 4-7 4 5 3-3" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30h12" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h3>
+          <p>Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

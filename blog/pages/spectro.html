@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spectro: um espectrograma inteiro no navegador, sem dependências, e as contas que cada parâmetro esconde | Blog Igor Nascimento</title>
+  <meta name="description" content="De um Float32Array a um canvas, sem dependências. A janela BH7 como aposta, o pico global como referência, Mel como remapeamento de exibição, a FFT própria como limite real, e o que entra na próxima versão maior." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Áudio</span>
+      <h1>Spectro: um espectrograma inteiro no navegador, sem dependências, e as contas que cada parâmetro esconde</h1>
+      <p class="standfirst">Uma biblioteca TypeScript publicada no npm que recebe um Float32Array e devolve um canvas: FFT própria, quatro janelas, escala Mel, 83 colormaps do Matplotlib, filtros FIR, eixos e exportação em PNG. Uma conversa sobre por que o AnalyserNode do navegador não servia, sobre o que a normalização ancorada no pico global faz com um arquivo que tem um estalo, e sobre o acoplamento com o window que eu mudaria hoje.</p>
+      <div class="meta"><span class="tag tag--accent">Áudio</span><span class="tag">Processamento de sinais</span><span class="tag">Frontend</span><span class="dot"></span><span>17 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O que o Spectro é, e por que ele existe</h2>
+    <p>O <a href="https://github.com/IMNascimento/Spectro" target="_blank" rel="noopener">Spectro</a> é uma biblioteca TypeScript, publicada no npm como <a href="https://www.npmjs.com/package/@sophialabs/spectro" target="_blank" rel="noopener">@sophialabs/spectro</a>, que recebe um vetor de áudio mono (um <code>Float32Array</code>, o que o navegador devolve ao decodificar um arquivo) e devolve um <code>&lt;canvas&gt;</code> com o espectrograma desenhado. FFT própria, quatro funções janela, escala linear ou Mel, 83 colormaps do Matplotlib com suas versões invertidas, filtros FIR de pré-processamento, eixos de frequência e de tempo com marcas calculadas, ganho e faixa em decibéis, detecção de pitch e exportação em PNG. Sem nenhuma dependência em tempo de execução.</p>
+    <p>Ela nasceu de uma necessidade da SophiaLabs: mostrar a imagem de um arquivo de áudio inteiro numa aplicação web, com a mesma aparência toda vez, com controle sobre cada parâmetro e sem puxar uma biblioteca de visualização de áudio que faz vinte coisas e deixa essa uma mal configurável. Publiquei doze versões entre março e setembro de 2025, a maioria nos primeiros dez dias, que é o ritmo de uma biblioteca sendo usada enquanto é escrita. Esse texto é sobre as contas que cada parâmetro esconde e sobre o que cada decisão compra e cobra.</p>
+
+    <h2>Por que não o AnalyserNode do navegador</h2>
+    <p>A Web Audio API já tem FFT. O <code>AnalyserNode</code> devolve o espectro do que está tocando agora, e é o caminho certo para um visualizador ao vivo. Não é o caminho certo para a imagem de um arquivo inteiro, por três motivos. Ele é amarrado ao relógio do áudio: para desenhar um arquivo de três minutos, é preciso tocá-lo por três minutos, ou acelerar e aceitar que os quadros caem onde o navegador quiser. O tamanho do salto entre quadros não é seu: é a frequência com que o seu laço de animação consegue ler o nó. E a janela é fixa, Blackman, sem escolha. O resultado é uma imagem que depende da máquina, da aba estar em primeiro plano e do que mais estava rodando. Eu queria o oposto: o mesmo vetor de entrada, com os mesmos parâmetros, produz a mesma imagem, pixel a pixel, em qualquer máquina. Isso exige fazer a análise offline, quadro a quadro, com a FFT no meu código.</p>
+
+    <h2>A pipeline, do vetor ao pixel</h2>
+    <ol>
+      <li><strong>Filtro opcional.</strong> Se configurado, um FIR passa-baixa, passa-alta, passa-banda ou rejeita-banda é aplicado ao sinal inteiro antes de qualquer análise.</li>
+      <li><strong>Quadros.</strong> O sinal é fatiado em janelas de <code>fftSize</code> amostras, avançando <code>hopSize</code> amostras por quadro (padrão: metade da FFT). O número de quadros define a largura nativa da imagem.</li>
+      <li><strong>Janela.</strong> Cada quadro é multiplicado por uma função janela: nenhuma, cosseno, Hanning ou Blackman-Harris de sete termos.</li>
+      <li><strong>FFT.</strong> Uma FFT radix-2, escrita na própria biblioteca. A magnitude de cada bin vira decibéis.</li>
+      <li><strong>Recorte em frequência.</strong> Só os bins entre <code>fMin</code> e <code>fMax</code> entram na imagem. A altura nativa é esse número de bins.</li>
+      <li><strong>Pico global e normalização.</strong> Um passe inteiro pela matriz acha o maior valor em dB. Cada pixel vira um número entre 0 e 1 relativo a esse pico, dentro de uma faixa de <code>rangeDb</code>.</li>
+      <li><strong>Colormap.</strong> O número entre 0 e 1 vira RGB por uma tabela de 256 cores.</li>
+      <li><strong>Canvas fora da tela.</strong> A imagem é escrita na resolução nativa (quadros por bins) e depois desenhada, com escala, num canvas do tamanho pedido, com margens para os eixos quando eles estão ligados.</li>
+    </ol>
+    <p>Cada passo tem uma decisão dentro, e algumas custam mais do que parecem.</p>
+
+    <h2>A janela padrão é BH7, e isso é uma aposta</h2>
+    <p>Multiplicar o quadro por uma janela existe para suavizar as bordas do recorte, porque um recorte abrupto espalha energia por todo o espectro. A escolha da janela é uma troca entre duas coisas: a largura do lóbulo principal, que define quão borrada em frequência a imagem fica, e a altura dos lóbulos laterais, que define o quanto um som forte "vaza" sobre os fracos ao redor.</p>
+    <table>
+      <thead><tr><th>Janela</th><th>Lóbulo principal</th><th>Lóbulos laterais</th><th>Na imagem</th></tr></thead>
+      <tbody>
+        <tr><td>Nenhuma</td><td>O mais estreito</td><td>Altos, caem devagar</td><td>Linhas finas, mas um tom forte mancha a vizinhança inteira</td></tr>
+        <tr><td>Cosseno</td><td>Estreito</td><td>Moderados</td><td>Compromisso leve, pouco usado</td></tr>
+        <tr><td>Hanning</td><td>Médio</td><td>Primeiro a cerca de −31 dB</td><td>O padrão da maioria das ferramentas; bom para música e fala</td></tr>
+        <tr><td>BH7</td><td>O mais largo</td><td>Muito abaixo dos da Hanning</td><td>Faixa dinâmica enorme, linhas mais grossas</td></tr>
+      </tbody>
+    </table>
+    <p>Escolhi a Blackman-Harris de sete termos como padrão porque o caso de uso da SophiaLabs tinha sons fracos perto de sons fortes, e o vazamento da Hanning escondia os fracos. O preço é que cada componente de frequência fica mais grossa na imagem, e para quem quer resolução fina, por exemplo para separar dois harmônicos próximos, a Hanning é melhor. É por isso que a janela é parâmetro e não constante: o padrão serve ao meu caso, e o seu pode ser outro.</p>
+
+    <h2>Uma FFT própria, e o que ela custa</h2>
+    <p>A FFT é radix-2 recursiva: divide o sinal em pares e ímpares, chama a si mesma nas duas metades e combina com os fatores de rotação. Escolhi escrevê-la em vez de depender de uma biblioteca por dois motivos. O primeiro é o requisito de zero dependências: quem instala o Spectro instala o Spectro, e nada muda embaixo dele. O segundo é o determinismo: a mesma entrada produz exatamente a mesma saída, em qualquer navegador, porque não há caminho acelerado que mude a precisão de uma máquina para outra.</p>
+    <p>O que isso cobra é desempenho. A análise roda de forma síncrona na thread principal, e para um arquivo de alguns segundos ou de um minuto isso é imperceptível, que era o caso de uso. Para arquivos longos, o tempo cresce de forma linear com o número de quadros, e a interface fica congelada enquanto a imagem é calculada. Esse é o limite real da biblioteca, mais do que qualquer parâmetro, e o salto configurável existe em parte por ele: aumentar <code>hopSize</code> reduz o número de quadros na mesma proporção, ao custo de resolução temporal.</p>
+    <div class="callout">
+      <span class="label">O outro limite, que vem do navegador</span>
+      <p>A largura nativa da imagem é o número de quadros, e o canvas fora da tela é criado com essa largura. Navegadores limitam o tamanho de um canvas, e o limite em largura fica na casa de algumas dezenas de milhares de pixels. Um arquivo de 30 minutos com salto de 1.024 amostras tem cerca de 77 mil quadros, e isso não cabe. Para arquivos assim, o salto precisa crescer até a imagem caber, e a regra prática é que a largura nativa não deve passar de algumas vezes a largura de destino, porque acima disso o navegador vai descartar colunas ao reduzir de qualquer jeito.</p>
+    </div>
+
+    <h2>A escala de decibéis e o pico global</h2>
+    <p>A magnitude de cada bin vira decibéis com um piso de 10⁻¹², para o logaritmo de zero não virar menos infinito. Depois, um passe inteiro pela matriz acha o pico global, o maior valor em dB de toda a imagem. Cada pixel é então normalizado assim: tudo que está acima do pico menos <code>rangeDb</code> é mapeado linearmente para 0 a 1, e tudo abaixo vira 0. O padrão de 80 dB cobre a faixa útil de quase todo áudio gravado. Reduzir a faixa aumenta o contraste e esconde o que é fraco; aumentar mostra mais e achata.</p>
+    <p>Ancorar no pico global é a decisão que torna a imagem estável: dois trechos do mesmo arquivo são comparáveis, porque a referência é a mesma. A alternativa, normalizar cada coluna pelo próprio pico, faz todo quadro parecer cheio e destrói exatamente a informação de intensidade relativa que o espectrograma existe para mostrar. Mas a decisão tem um custo conhecido: <strong>um único estalo define a referência do arquivo inteiro</strong>. Um clique de 0 dB numa gravação em que o resto fica a −50 dB joga tudo de interessante para a parte escura da faixa. Hoje o jeito é aumentar <code>rangeDb</code> ou aplicar um filtro antes, e nenhum dos dois é a resposta certa. A resposta certa é uma referência configurável, por percentil ou fixa, e é o que entra na próxima versão. É também o que vai dar sentido ao <code>gainDb</code>: com referência no pico, um ganho uniforme entra nos dois lados da conta e se cancela; com referência fixa, ele desloca a imagem como um volume.</p>
+
+    <h2>Mel é um remapeamento de exibição, não um banco de filtros</h2>
+    <p>Quando <code>scaleType</code> é Mel, a análise é exatamente a mesma: FFT linear, os mesmos bins. O que muda é como as linhas da imagem escolhem de qual bin ler. Para cada linha, a biblioteca calcula o valor Mel correspondente à posição vertical, converte de volta para Hz e pega o bin mais próximo. Isso dá a aparência perceptual, com as frequências baixas ocupando mais espaço, e dá de graça, sem segunda análise. Mas tem duas consequências que vale saber. Nas linhas de baixo, várias linhas consecutivas leem o mesmo bin, e a imagem fica em blocos; a resolução não aumentou, só foi esticada. Nas linhas de cima, linhas consecutivas pulam bins, e componentes que caem nos bins pulados somem da imagem. Um banco de filtros Mel de verdade somaria os bins pulados em vez de ignorá-los. Para olhar, o remapeamento serve, e é o que a maioria das ferramentas de visualização faz. Para extrair features para um modelo, não use essa imagem; calcule o banco de filtros.</p>
+
+    <h2>Colormaps do Matplotlib, e um acoplamento que vem da primeira versão</h2>
+    <p>Os colormaps são as tabelas do Matplotlib, 83 nomes com 256 cores cada, mais as versões invertidas com sufixo <code>_r</code>. A função <code>partial('viridis')</code> devolve uma função que recebe um número entre 0 e 1 e devolve RGB. Com 256 entradas, a busca é por degrau, sem interpolação, e a diferença é invisível, porque 256 degraus é mais do que a imagem consegue mostrar. Ter as tabelas todas na biblioteca foi uma escolha: quem gera um espectrograma quer o mesmo <em>viridis</em> ou <em>jet</em> que vê no Python, e não uma aproximação. O custo é tamanho: as tabelas são quase todo o pacote.</p>
+    <p>O parâmetro de colormap é um nome, uma string, e a biblioteca o procura no escopo global. O jeito de usar é expor as funções antes de gerar, com <code>window.hot = partial('hot')</code>. Isso veio da primeira versão, pensada para ser carregada direto num <code>&lt;script&gt;</code> numa página sem módulos, onde é a forma mais simples que existe. Em Angular ou React, é um passo a mais que surpreende quem esperava passar uma função. E impede o empacotador de descartar os colormaps que você não usa, porque todos estão num objeto só. Aceitar uma função como colormap, mantendo a string como atalho, é a mudança de interface que entra na próxima versão maior.</p>
+
+    <h2>Eixos e exportação</h2>
+    <p>Os eixos só existem se pedidos, e quando existem a biblioteca adiciona margens: 60 pixels à esquerda para os rótulos de frequência, 22 na base para os de tempo. As marcas de frequência seguem a escala em uso, lineares ou em Mel, com a quantidade calculada pela altura se você não fixar. As marcas de tempo usam uma lista de passos "agradáveis", de 50 milissegundos a uma hora, e escolhem o menor que respeita um espaçamento mínimo em pixels, para os rótulos nunca se sobreporem em nenhuma largura. A duração total é quadros vezes salto dividido pela taxa de amostragem.</p>
+    <p>A exportação em PNG, <code>exportHighResPNG</code>, gera o espectrograma e o desenha num canvas maior, pelo fator pedido. Serve para o que foi feita: um arquivo para relatório ou impressão, em que a imagem da tela ficaria pequena. O que ela não faz é aumentar o detalhe, porque os pixels são os mesmos, interpolados. Para ter mais detalhe de verdade, o caminho é aumentar <code>canvasHeight</code> e <code>targetWidth</code> e exportar em fator 1.</p>
+
+    <h2>Os filtros FIR, e a conta que define a transição</h2>
+    <p>Os quatro filtros são construídos a partir de um só: um passa-baixa por sinc janelado, com 101 coeficientes e janela de Hamming. O passa-alta é a inversão espectral do passa-baixa (um impulso menos o kernel). O passa-banda é a diferença entre dois passa-baixas. O rejeita-banda é a inversão do passa-banda. É elegante e é padrão de livro. A conta que importa é a largura da transição: com 101 coeficientes e Hamming, a faixa em que o filtro passa de "deixa passar" para "corta" é cerca de 4% da taxa de amostragem, uns 1,7 kHz a 44,1 kHz. Para separar voz de ruído de baixa frequência, serve. Para um notch estreito em 60 Hz, não serve: a transição é trinta vezes maior que a banda que você quer rejeitar. Um kernel maior resolve, ao custo de uma convolução direta que cresce com ele, e tornar o tamanho do kernel um parâmetro é uma das mudanças pequenas que valem a pena.</p>
+
+    <h2>Pitch e harmônicos: uma medida do arquivo inteiro</h2>
+    <p>A detecção de pitch usa autocorrelação: para cada atraso possível entre o período da frequência máxima e o da mínima, soma o produto do sinal com ele mesmo deslocado, e o atraso de maior soma é o período da fundamental. A extração de harmônicos pega essa fundamental e devolve os múltiplos inteiros até o décimo, parando em <code>fMax</code>. É simples e funciona bem para o que foi feito: uma nota sustentada, um tom de teste, um sinal de um instrumento só.</p>
+    <p>O trade-off está no que a medida significa. Ela é calculada sobre o vetor inteiro, então devolve <em>um</em> pitch para o arquivo. Para uma frase cantada ou para fala, isso é a média de coisas diferentes e não quer dizer muito. E o custo acompanha: cada atraso é uma passagem pelo sinal, e com <code>fMin</code> em 1 Hz a 44,1 kHz são 44 mil atrasos, o que sobre um arquivo longo custa mais do que o espectrograma inteiro. Apertar <code>fMin</code> e <code>fMax</code> para a faixa do instrumento é o que torna a conta barata e a resposta confiável. A versão por quadro, devolvendo uma curva no tempo, é o que faz sentido para pitch tracking de verdade, e é o próximo passo dessa parte da biblioteca.</p>
+
+    <h2>O que entra na próxima versão maior</h2>
+    <ul>
+      <li><strong>Análise separada do desenho.</strong> Uma função pura que recebe o vetor e devolve a matriz em dB, sem tocar no DOM, e uma função de desenho que recebe a matriz. A primeira passa a rodar num Web Worker, e a interface deixa de congelar; de quebra, passa a rodar em Node para gerar imagens no servidor.</li>
+      <li><strong>Referência de normalização configurável</strong>, por percentil ou fixa, para o estalo deixar de mandar na imagem e o ganho voltar a ter efeito.</li>
+      <li><strong>Colormap como função</strong>, com a string como atalho e as tabelas separadas, para o pacote só levar o que você usa.</li>
+      <li><strong>Pitch por quadro</strong>, devolvendo uma curva no tempo em vez de um número para o arquivo.</li>
+    </ul>
+    <div class="callout callout--dark">
+      <span class="label">O que não muda</span>
+      <p>Zero dependências, a mesma imagem para a mesma entrada em qualquer máquina, e um canvas na saída. É o contrato que fez a biblioteca valer a pena, e tudo acima é para cumpri-lo em arquivos maiores e em mais ambientes, não para trocá-lo.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>O Spectro transforma um vetor de áudio num espectrograma determinístico no navegador, sem dependências, com janela, salto, escala, faixa dinâmica e colormap sob controle. É o que o <code>AnalyserNode</code> não dá.</li>
+      <li>A BH7 como padrão compra faixa dinâmica e paga resolução. O pico global como referência compra estabilidade e paga vulnerabilidade a um estalo. Mel é remapeamento de exibição, não banco de filtros.</li>
+      <li>A FFT própria compra zero dependências e determinismo, e paga em tempo de análise na thread principal; o salto configurável é a alavanca para arquivos longos.</li>
+      <li>Colormaps do Matplotlib de verdade, ao custo de tamanho e de um acoplamento com o escopo global que sai na próxima versão maior, junto com a análise em worker e o pitch por quadro.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="prompt2drawio.html" data-slug="prompt2drawio" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="21" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="13" y="23" width="10" height="7" rx="1.5" fill="#bb244e"/><path d="M10 13v5h16v-5M18 18v5" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Prompt2Drawio: o modelo escreve o JSON, o código desenha o diagrama nativo do draw.io</h3>
+          <p>Nem Mermaid, nem XML pelo modelo. Uma especificação JSON pequena, estilos colhidos de dentro do draw.io, layout por camadas determinístico, e o que sobra para o modelo errar quando só o conteúdo é dele.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>14 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pomodoro.html" data-slug="pomodoro" data-tags="Produtividade|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="20" r="11" stroke="#111827" stroke-width="2"/><path d="M18 20V13" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M18 20l5 3" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M14 5h8M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="20" r="1.8" fill="#bb244e"/></svg></span>
+          <h3>Pomodoro além do 25/5: o que a técnica pede de verdade, onde ela não serve, e o timer que fiz para rodá-la</h3>
+          <p>Atenção contínua é o recurso escasso. A técnica Pomodoro inteira, não só o timer, onde ela não serve e o que eu ajusto, e o PomoFocus: uma página sem servidor que decide a pausa por você e registra o dia.</p>
+          <div class="meta"><span class="tag tag--accent">Produtividade</span><span class="tag">Frontend</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="sns_security.html" data-slug="sns_security" data-tags="Segurança|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="7" y="15" width="22" height="15" rx="3" stroke="#111827" stroke-width="2"/><path d="M12 15v-4a6 6 0 0 1 12 0v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="22" r="2.4" fill="#bb244e"/><path d="M18 24v3" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+          <h3>SNS Security: o notebook foi para a assistência, e os segredos ficaram cifrados</h3>
+          <p>Cifrar os .env antes de entregar o notebook virou uma ferramenta: núcleo no age, frase que nunca entra no Python, sessão em RAM que se destrói, o arquivo tratado como adversário, e a lista honesta do que não protege.</p>
+          <div class="meta"><span class="tag tag--accent">Segurança</span><span class="tag">Sistemas</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="trello_agentic.html" data-slug="trello_agentic" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="14" rx="1.5" fill="#bb244e"/><rect x="19" y="10" width="8" height="8" rx="1.5" stroke="#111827" stroke-width="1.8"/><path d="M21 14l1.5 1.5L25 12" stroke="#111827" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Trello Agentic: um agente rodando na sua máquina, com Ollama, LangGraph e cinco ferramentas</h3>
+          <p>Uma frase vira um card completo no Trello, com o modelo rodando local pelo Ollama. A docstring é a interface, o segredo nunca entra no contexto, e o que precisa ser exato fica no código. Onde o modelo tropeça e o que vem a seguir.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="nahas.html" data-slug="nahas" data-tags="Séries temporais|Deep Learning">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 27L12 19l5 4 6-9 8 6" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h26" stroke="#bb244e" stroke-width="2" stroke-dasharray="3 3"/><circle cx="23" cy="14" r="2.4" fill="#bb244e"/></svg></span>
+          <h3>Nahas: uma bancada para prever preço em três frameworks, e o que ela cobra em troca</h3>
+          <p>LSTM e Transformer em três frameworks atrás de uma interface só. O que a bancada entrega, o que cobra, e o que custou pegar os problemas de metodologia a tempo: semanas de execuções descartadas e refeitas.</p>
+          <div class="meta"><span class="tag tag--accent">Séries temporais</span><span class="tag">Deep Learning</span><span class="dot"></span><span>21 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="direcao_recusa.html" data-slug="direcao_recusa" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2" opacity=".5"/><path d="M8 26 L26 10" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 10h6v6" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="14" r="1.6" fill="#111827"/><circle cx="23" cy="24" r="1.6" fill="#111827"/><circle cx="14" cy="23" r="1.6" fill="#111827"/></svg></span>
+          <h3>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h3>
+          <p>Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ollama_para_vllm.html" data-slug="ollama_para_vllm" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="4" y="7" width="28" height="18" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M8 20l5-6 4 4 4-7 4 5 3-3" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30h12" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h3>
+          <p>Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

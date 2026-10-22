@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prompt2Drawio: o modelo escreve o JSON, o código desenha o diagrama nativo do draw.io | Blog Igor Nascimento</title>
+  <meta name="description" content="Nem Mermaid, nem XML pelo modelo. Uma especificação JSON pequena, estilos colhidos de dentro do draw.io, layout por camadas determinístico, e o que sobra para o modelo errar quando só o conteúdo é dele." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Agentes</span>
+      <h1>Prompt2Drawio: o modelo escreve o JSON, o código desenha o diagrama nativo do draw.io</h1>
+      <p class="standfirst">Uma frase vira um arquivo .drawio editável, com as formas e cores do próprio aplicativo e layout calculado, usando um modelo local pelo Ollama ou da OpenAI. Uma conversa sobre por que nem Mermaid nem XML gerado pelo modelo servem, sobre colher os estilos de dentro do draw.io para o arquivo parecer nativo, sobre o layout por camadas que é determinístico de propósito, e sobre o que o modelo ainda erra quando o trabalho dele é reduzido ao mínimo.</p>
+      <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>14 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O que ele faz, em uma linha de terminal</h2>
+    <p>O <a href="https://github.com/IMNascimento/drawio_agentic" target="_blank" rel="noopener">Prompt2Drawio</a> transforma uma frase num arquivo <code>.drawio</code> que abre direto no draw.io, com as formas, as fontes e as cores nativas do próprio aplicativo. Você descreve um diagrama entidade-relacionamento, um diagrama de classes, de sequência, de estados, de atividades ou de casos de uso, e recebe um arquivo editável, com layout calculado, que parece ter sido desenhado à mão dentro da ferramenta. O modelo de linguagem pode ser local, pelo Ollama, ou da OpenAI, à sua escolha por flag.</p>
+<pre><code>python prompt2drawio.py \
+  <span class="s">"DER de autenticação em dois fatores, com usuário separado da tabela de autenticação"</span> \
+  --mode er --model ollama:gpt-oss:20b --direction LR --styles styles.json \
+  --style-er-entity er.entity \
+  --style-er-edge edge.entityrelation</code></pre>
+    <p>Num outro texto deste blog conto como montei um agente de Trello com um laço ReAct, e termino dizendo que para fluxos lineares eu preferiria pedir ao modelo um JSON e deixar o código executar. Este projeto é essa preferência posta em prática. Aqui o modelo não chama ferramenta nenhuma. Ele produz uma especificação, e tudo que acontece depois, validação, layout, estilo e XML, é código determinístico. O texto é sobre por que esse desenho serve melhor para diagramas, sobre o que o draw.io exige para um arquivo parecer nativo, e sobre o que o modelo ainda erra mesmo com o trabalho reduzido ao mínimo.</p>
+
+    <h2>Por que não Mermaid, e por que não deixar o modelo escrever o XML</h2>
+    <p>O caminho mais curto para "texto vira diagrama" é pedir Mermaid ao modelo e renderizar. Funciona para uma imagem. Não funciona para o que eu precisava, que era um arquivo que alguém abre, arrasta uma caixa, muda uma cor e salva. Mermaid gera imagem, não arquivo editável, e a importação para o draw.io perde o estilo. O outro atalho é pedir ao modelo o XML do draw.io diretamente. Esse falha de um jeito pior: o formato é verboso, cada célula tem uma string de estilo com dezenas de chaves, e um atributo mal escapado faz o aplicativo recusar o arquivo inteiro com uma mensagem que não diz onde. O modelo acerta a estrutura e erra os detalhes, e os detalhes são o que importa.</p>
+    <p>A decisão foi colocar o modelo no único lugar em que ele é insubstituível: entender o que a pessoa quer e devolver isso como dados. Entidades com atributos e tipos. Classes com métodos e visibilidade. Estados com transições. Em JSON, com um esquema que cabe num parágrafo. O resto é problema de geometria e de formato, e geometria e formato são coisas que código faz melhor e sempre igual.</p>
+    <div class="versus">
+      <div>
+        <h4>Modelo gera JSON, código gera o resto</h4>
+        <ul>
+          <li>O esquema pedido é pequeno e o modelo acerta quase sempre</li>
+          <li>Layout é determinístico: a mesma especificação dá o mesmo arquivo</li>
+          <li>Estilos vêm do draw.io, não da memória do modelo</li>
+          <li>Qualquer modelo que escreva JSON serve, inclusive um de 8 bilhões</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Modelo gera o XML</h4>
+        <ul>
+          <li>Um escape errado invalida o arquivo inteiro</li>
+          <li>Posições inventadas, caixas sobrepostas</li>
+          <li>Estilos aproximados, diagrama que "parece" draw.io</li>
+          <li>Só modelos grandes chegam perto, e ainda assim variam</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>A anatomia: sete esquemas, um layout, um gerador de XML</h2>
+    <p>Cada tipo de diagrama tem o seu esquema JSON, descrito no prompt de forma literal, com o exemplo completo e as regras embaixo. O modelo recebe o esquema e a frase, com temperatura zero e a instrução de responder só JSON. O código tira cercas de markdown se vierem, recorta do primeiro <code>{</code> ao último <code>}</code>, faz o parse e preenche o que faltar com padrões: tipo de atributo vazio vira "text", visibilidade vazia vira "+", relação sem tipo vira associação. O que é inválido é descartado, como uma relação apontando para uma entidade que não existe, e o que é vazio ganha um mínimo, como uma única entidade com um id, para o arquivo nunca sair quebrado.</p>
+    <table class="nowrap1">
+      <thead><tr><th>Modo</th><th>O que o modelo devolve</th><th>O que o código faz com isso</th></tr></thead>
+      <tbody>
+        <tr><td><code>er</code></td><td>Entidades com atributos (tipo, chave primária, único, nulo) e relações com cardinalidade</td><td>Uma caixa por entidade com cabeçalho em negrito e uma linha por atributo com as marcações; aresta com a cardinalidade como rótulo</td></tr>
+        <tr><td><code>class</code></td><td>Classes com atributos, métodos e relações tipadas</td><td>Caixa com três compartimentos separados por linha; aresta rotulada pelo tipo da relação</td></tr>
+        <tr><td><code>sequence</code></td><td>Participantes e mensagens em ordem</td><td>Um nó por participante e uma aresta por mensagem, em layout horizontal</td></tr>
+        <tr><td><code>state</code></td><td>Estados, transições, estado inicial e final</td><td>Nós arredondados, marcadores de início e fim, arestas com o evento</td></tr>
+        <tr><td><code>activity</code></td><td>Atividades com tipo (início, ação, decisão, fim) e arestas com condição</td><td>Losango para decisão, arredondado para início e fim, retângulo para o resto</td></tr>
+        <tr><td><code>usecase</code></td><td>Atores, casos de uso e relações (associação, include, extend)</td><td>Ator com o estilo de boneco do draw.io, caso de uso em elipse, rótulo da relação na aresta</td></tr>
+        <tr><td><code>generic</code></td><td>Nós com forma simples e arestas</td><td>Para fluxos e rascunhos, sem semântica</td></tr>
+      </tbody>
+    </table>
+    <p>O modo é escolhido por flag, ou inferido da frase por palavras-chave quando você não escolhe: "entidade", "tabela" e "cardinalidade" levam ao DER; "classe" ao diagrama de classes; "ator" e "caso de uso" aos casos de uso. É uma heurística simples, e a frase decide: se ela mistura vocabulário, a flag resolve.</p>
+    <p>Depois do JSON, tudo vira o mesmo problema: um grafo com nós e arestas. O layout é por camadas. Os nós sem aresta de entrada formam a primeira camada; uma busca em largura coloca cada nó na camada da sua distância até a raiz; dentro de cada camada os nós são ordenados pelo nome, para o resultado ser o mesmo a cada execução. A direção, de cima para baixo ou da esquerda para a direita, pode ser forçada ou escolhida sozinha: se a camada mais larga tem mais nós do que o número de camadas, o grafo é "largo" e vai para a horizontal; senão, vertical. Cada nó tem 240 por 96 pixels e os espaçamentos são fixos, o que é o suficiente para o draw.io abrir com tudo legível e nada sobreposto.</p>
+    <p>Por fim o XML. Cada nó vira uma célula com posição, tamanho, rótulo e estilo. Cada aresta vira uma célula com origem e destino. O rótulo pode conter HTML, porque é assim que o draw.io quebra linha e põe negrito, e isso exige dois escapes: um para o conteúdo HTML, outro para o atributo XML que o carrega. Foi a parte que mais deu trabalho para acertar, e é a parte que o modelo nunca acertaria sozinho.</p>
+
+    <h2>O que faz o arquivo parecer nativo: colher os estilos do próprio draw.io</h2>
+    <p>Um retângulo com texto dentro é um retângulo com texto dentro. O que faz uma entidade parecer uma entidade do draw.io é a string de estilo: a forma, a fonte, as cores, as bordas, o comportamento ao redimensionar, tudo numa linha de pares chave-valor que só o aplicativo conhece. Eu poderia escrever essas strings à mão para meia dúzia de casos. Em vez disso, o projeto traz um segundo script que as colhe do próprio aplicativo.</p>
+    <p>O draw.io de desktop é um aplicativo Electron, e dentro do pacote estão os modelos e as bibliotecas de formas em XML, as mesmas que aparecem no painel lateral. O script extrai o pacote, varre todos os XML, pega o atributo de estilo de cada célula, normaliza a ordem das chaves para deduplicar, e dá a cada estilo um nome legível a partir do que ele é: <code>er.entity</code>, <code>uml.class</code>, <code>edge.entityrelation</code>, <code>shape.ellipse</code>. O resultado é um <code>styles.json</code> com 162 estilos únicos na versão que uso, que o gerador consulta por nome.</p>
+    <p>A consulta tem três níveis. Se você passa um estilo por flag, ele ganha. Se não, cada modo tem uma lista de preferências, e o gerador procura a primeira chave que contenha os termos, por exemplo "er.entity", depois "entity", depois "table". Se nada bate, há um estilo mínimo embutido para o arquivo abrir de qualquer jeito. E você pode passar a string literal de estilo em vez de uma chave, para o caso em que quer uma cor específica e não quer editar o JSON.</p>
+    <div class="callout callout--dark">
+      <span class="label">A regra, dita de frente</span>
+      <p>O modelo escreve o conteúdo. O código decide forma, posição e aparência. O que precisa estar exato, escape, geometria, nome de estilo, nunca passa pelo modelo. E o que precisa ser fiel ao draw.io vem do draw.io, colhido do aplicativo, não lembrado por ninguém. Com isso, trocar o modelo não muda a aparência do diagrama; muda só a qualidade do que está escrito nele.</p>
+    </div>
+
+    <h2>Local ou nuvem, e o que muda</h2>
+    <p>A chamada ao modelo é a única parte com dependência externa, e ela é pequena de propósito: para o Ollama, uma requisição HTTP à porta local com o prompt e a temperatura; para a OpenAI, a chamada de chat com as mesmas duas mensagens. O resto do programa não sabe qual dos dois respondeu. Com o Ollama, nada do que você descreve sai da máquina, o que importa quando o diagrama é o modelo de dados de um cliente. O tempo limite é generoso, quinze minutos, porque um modelo local de 20 bilhões de parâmetros numa placa doméstica pode levar um bom tempo para escrever um DER com dez entidades e todos os atributos, e eu prefiro esperar a cortar um JSON pela metade.</p>
+    <p>A diferença de qualidade entre os dois está no conteúdo, não no arquivo. Um modelo grande produz tipos de coluna mais consistentes, não esquece a chave estrangeira, nomeia as relações. Um modelo local de 8 bilhões produz um JSON válido quase sempre, mas às vezes inventa uma relação para uma entidade que não descreveu, e essa relação é descartada em silêncio pelo código. O diagrama abre, e falta uma seta. É o tipo de erro que você vê em um segundo olhando o resultado, e é a razão de o arquivo sair com um hash curto no nome: rodar três vezes e comparar os três lado a lado é mais rápido do que ajustar o prompt.</p>
+
+    <h2>Onde o modelo ainda tropeça</h2>
+    <ul>
+      <li><strong>Relações para entidades que não existem.</strong> O caso mais comum. O código descarta a relação em vez de criar uma entidade fantasma, porque uma caixa vazia inventada é pior do que uma seta faltando.</li>
+      <li><strong>JSON com comentário ou com vírgula sobrando.</strong> Modelos menores gostam de explicar. O recorte do primeiro ao último chaveamento resolve o texto em volta, mas não resolve uma vírgula a mais dentro, e aí a execução falha com erro claro. A correção que eu quero é um pedido de reparo ao próprio modelo, com o erro do parser como contexto.</li>
+      <li><strong>Diagrama de sequência sem a noção de tempo.</strong> Pela natureza do layout, as mensagens viram arestas entre participantes, e a ordem vertical das linhas de vida, que é o que dá sentido a um diagrama de sequência, não existe. O modo funciona para ver quem fala com quem, não para ler o protocolo. É o modo que mais se beneficiaria de um layout próprio.</li>
+      <li><strong>Grafos com ciclo e sem raiz.</strong> Um diagrama de estados em que todo estado tem transição de entrada não tem camada zero. O código escolhe o primeiro estado como raiz e segue. O resultado abre e é editável, mas a disposição é arbitrária.</li>
+      <li><strong>Cruzamento de arestas.</strong> O layout ordena os nós dentro de cada camada pelo nome, não para minimizar cruzamentos. Em grafos pequenos não importa; em um DER de quinze entidades aparecem setas atravessando caixas, e a pessoa arrasta no draw.io. Minimizar cruzamentos é um problema conhecido e resolvido na literatura, e é o próximo passo natural do layout.</li>
+    </ul>
+
+    <h2>O que eu quero acrescentar</h2>
+    <ul>
+      <li><strong>Reparo do JSON pelo modelo</strong>, uma única tentativa, com a mensagem do parser. Resolve a maior parte das falhas dos modelos pequenos sem laço de agente.</li>
+      <li><strong>Layout próprio para sequência</strong>, com linhas de vida verticais e mensagens em ordem, que é o que o draw.io já sabe desenhar e só precisa das coordenadas certas.</li>
+      <li><strong>Ordenação dentro da camada por baricentro</strong>, para reduzir cruzamentos, mantendo o determinismo.</li>
+      <li><strong>Um modo de atualização</strong>, em que o prompt descreve uma mudança e o programa lê o arquivo existente, aplica a diferença e preserva o que a pessoa arrastou. Hoje cada execução é um arquivo novo, e é por isso que o nome leva um hash.</li>
+    </ul>
+
+    <div class="callout">
+      <span class="label">A receita, para quem quer montar o seu</span>
+      <p>Defina o esquema JSON de cada coisa que o modelo pode produzir, com exemplo completo no prompt e regras curtas embaixo. Peça só JSON, com temperatura zero, e trate o texto em volta no código. Valide e complete com padrões, descartando o que é inválido em vez de tentar consertar. Deixe tudo que é geometria, formato e aparência no código, e busque a aparência na fonte original, não na memória do modelo. E faça a chamada ao modelo ser uma função de três linhas, para trocar de local para nuvem e de volta sem tocar no resto.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>Uma frase vira um arquivo .drawio editável, com estilos nativos e layout calculado. O modelo pode ser local pelo Ollama ou da OpenAI.</li>
+      <li>Nem Mermaid, que gera imagem, nem XML pelo modelo, que quebra no escape. O modelo gera uma especificação JSON pequena; validação, layout, estilo e XML são código.</li>
+      <li>Os estilos são colhidos do próprio aplicativo draw.io, 162 na versão que uso, resolvidos por nome com lista de preferências por modo e override por flag.</li>
+      <li>O layout por camadas é determinístico e suficiente para grafos pequenos; cruzamentos e diagramas de sequência pedem layouts próprios, que vêm a seguir.</li>
+      <li>O que o modelo ainda erra é conteúdo: relação para entidade inexistente, JSON com sobra. O código descarta ou falha com clareza, e o reparo em uma tentativa é o próximo passo.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="spectro.html" data-slug="spectro" data-tags="Áudio|Processamento de sinais|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="22" rx="2.5" stroke="#111827" stroke-width="2"/><rect x="8" y="18" width="3" height="7" fill="#bb244e"/><rect x="12" y="12" width="3" height="13" fill="#bb244e" opacity=".8"/><rect x="16" y="9" width="3" height="16" fill="#bb244e"/><rect x="20" y="14" width="3" height="11" fill="#bb244e" opacity=".7"/><rect x="24" y="11" width="3" height="14" fill="#bb244e" opacity=".55"/><path d="M11 31h14" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Spectro: um espectrograma inteiro no navegador, sem dependências, e as contas que cada parâmetro esconde</h3>
+          <p>De um Float32Array a um canvas, sem dependências. A janela BH7 como aposta, o pico global como referência, Mel como remapeamento de exibição, a FFT própria como limite real, e o que entra na próxima versão maior.</p>
+          <div class="meta"><span class="tag tag--accent">Áudio</span><span class="tag">Processamento de sinais</span><span class="tag">Frontend</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pomodoro.html" data-slug="pomodoro" data-tags="Produtividade|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="20" r="11" stroke="#111827" stroke-width="2"/><path d="M18 20V13" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M18 20l5 3" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M14 5h8M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="20" r="1.8" fill="#bb244e"/></svg></span>
+          <h3>Pomodoro além do 25/5: o que a técnica pede de verdade, onde ela não serve, e o timer que fiz para rodá-la</h3>
+          <p>Atenção contínua é o recurso escasso. A técnica Pomodoro inteira, não só o timer, onde ela não serve e o que eu ajusto, e o PomoFocus: uma página sem servidor que decide a pausa por você e registra o dia.</p>
+          <div class="meta"><span class="tag tag--accent">Produtividade</span><span class="tag">Frontend</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="sns_security.html" data-slug="sns_security" data-tags="Segurança|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="7" y="15" width="22" height="15" rx="3" stroke="#111827" stroke-width="2"/><path d="M12 15v-4a6 6 0 0 1 12 0v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="22" r="2.4" fill="#bb244e"/><path d="M18 24v3" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+          <h3>SNS Security: o notebook foi para a assistência, e os segredos ficaram cifrados</h3>
+          <p>Cifrar os .env antes de entregar o notebook virou uma ferramenta: núcleo no age, frase que nunca entra no Python, sessão em RAM que se destrói, o arquivo tratado como adversário, e a lista honesta do que não protege.</p>
+          <div class="meta"><span class="tag tag--accent">Segurança</span><span class="tag">Sistemas</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="trello_agentic.html" data-slug="trello_agentic" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="14" rx="1.5" fill="#bb244e"/><rect x="19" y="10" width="8" height="8" rx="1.5" stroke="#111827" stroke-width="1.8"/><path d="M21 14l1.5 1.5L25 12" stroke="#111827" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Trello Agentic: um agente rodando na sua máquina, com Ollama, LangGraph e cinco ferramentas</h3>
+          <p>Uma frase vira um card completo no Trello, com o modelo rodando local pelo Ollama. A docstring é a interface, o segredo nunca entra no contexto, e o que precisa ser exato fica no código. Onde o modelo tropeça e o que vem a seguir.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="nahas.html" data-slug="nahas" data-tags="Séries temporais|Deep Learning">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 27L12 19l5 4 6-9 8 6" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h26" stroke="#bb244e" stroke-width="2" stroke-dasharray="3 3"/><circle cx="23" cy="14" r="2.4" fill="#bb244e"/></svg></span>
+          <h3>Nahas: uma bancada para prever preço em três frameworks, e o que ela cobra em troca</h3>
+          <p>LSTM e Transformer em três frameworks atrás de uma interface só. O que a bancada entrega, o que cobra, e o que custou pegar os problemas de metodologia a tempo: semanas de execuções descartadas e refeitas.</p>
+          <div class="meta"><span class="tag tag--accent">Séries temporais</span><span class="tag">Deep Learning</span><span class="dot"></span><span>21 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="direcao_recusa.html" data-slug="direcao_recusa" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2" opacity=".5"/><path d="M8 26 L26 10" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 10h6v6" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="14" r="1.6" fill="#111827"/><circle cx="23" cy="24" r="1.6" fill="#111827"/><circle cx="14" cy="23" r="1.6" fill="#111827"/></svg></span>
+          <h3>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h3>
+          <p>Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ollama_para_vllm.html" data-slug="ollama_para_vllm" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="4" y="7" width="28" height="18" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M8 20l5-6 4 4 4-7 4 5 3-3" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30h12" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h3>
+          <p>Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

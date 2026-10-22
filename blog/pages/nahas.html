@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nahas: uma bancada para prever preço em três frameworks, e o que ela cobra em troca | Blog Igor Nascimento</title>
+  <meta name="description" content="LSTM e Transformer em três frameworks atrás de uma interface só. O que a bancada entrega, o que cobra, e o que custou pegar os problemas de metodologia a tempo: semanas de execuções descartadas e refeitas." />
+  <link rel="icon" type="image/png" href="../../assets/img/nlogo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/blog.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="../index.html"><img src="../../assets/img/nlogo.png" alt="Logo Nascimento">Igor Nascimento <span>/ Blog</span></a>
+      <nav>
+        <a class="btn btn--dark" href="../index.html"><span>Todos os artigos</span></a>
+        <a class="btn btn--dark" href="../../index.html"><span>Portfólio</span></a>
+      </nav>
+    </div>
+  </header>
+  <section class="article-head">
+    <div class="article-head__inner">
+      <span class="eyebrow">Séries temporais</span>
+      <h1>Nahas: uma bancada para prever preço em três frameworks, e o que ela cobra em troca</h1>
+      <p class="standfirst">Uma plataforma para treinar LSTM e Transformer em Keras, TensorFlow e PyTorch atrás de uma interface só, com normalização multi-escala, busca em grade em várias GPUs, fine-tuning com backup e previsão ao vivo pela Binance. Uma conversa sobre o que esse desenho entrega, o que ele custa em complexidade, e sobre os problemas de metodologia que a própria bancada ajudou a pegar e corrigir antes de qualquer resultado sair, ao preço de muitas execuções perdidas.</p>
+      <div class="meta"><span class="tag tag--accent">Séries temporais</span><span class="tag">Deep Learning</span><span class="dot"></span><span>21 min de leitura</span><span class="dot"></span><span>Igor Nascimento</span></div>
+    </div>
+  </section>
+  <article class="article">
+
+    <h2>O que o Nahas é, e por que ele existe</h2>
+    <p>O <a href="https://github.com/IMNascimento/Nahas" target="_blank" rel="noopener">Nahas</a> é a bancada de experimentos da minha dissertação: uma plataforma para prever séries financeiras, com foco em criptomoedas, usando LSTM e Transformer. Ele treina os dois tipos de modelo em três frameworks (Keras, TensorFlow e PyTorch) atrás de uma interface única, roda busca em grade de hiperparâmetros em várias GPUs ao mesmo tempo, faz fine-tuning com backup e comparação automática, persiste tudo em MySQL e executa previsão ao vivo com dados da Binance. Também implementa quatro estratégias de normalização, entre elas uma variante multi-escala inspirada no EvoMSN, de Qin e colegas (2024), que escolhe periodicidades por Fourier e normaliza cada fatia da janela separadamente.</p>
+    <p>Esse texto é sobre o que esse desenho entrega e o que ele cobra. Uma bancada de pesquisa tem um objetivo diferente de um produto: ela precisa tornar comparável o que normalmente não é. Trocar o framework sem trocar o experimento, trocar a normalização sem trocar o modelo, rodar cinquenta configurações numa noite e acordar com um relatório que diz, para cada uma, se ela tem habilidade de verdade ou só aprendeu a copiar ontem. Cada uma dessas conveniências tem um preço em complexidade, e boa parte das decisões do Nahas é a escolha de pagar ou não esse preço. E, como toda bancada, ela também serviu para pegar os meus próprios erros de metodologia antes que eles saíssem dela, o que custou caro de outra forma: muitas execuções perdidas.</p>
+
+    <h2>O ganho principal: trocar o framework sem trocar o experimento</h2>
+    <p>A decisão que organiza tudo é que o modelo é um <code>Trainer</code> intercambiável atrás de uma interface comum: treinar, salvar, carregar, prever, avaliar e validar têm a mesma assinatura em Keras, TensorFlow e PyTorch. O que cada framework faz de diferente fica escondido atrás dela. O que isso compra é que a pipeline inteira, do carregamento dos dados ao relatório de métricas, é escrita uma vez. O mesmo janelamento, a mesma normalização, as mesmas baselines, a mesma persistência, a mesma previsão ao vivo. Quando eu quero saber se um resultado é do modelo ou do framework, troco um campo no config e rodo de novo. Sem a interface, cada comparação entre frameworks seria uma reimplementação, e cada reimplementação seria uma fonte nova de diferença que não é a que eu quero medir.</p>
+    <p>O preço é o que uma interface única sempre custa: o menor denominador comum. O que um framework faz de especial e os outros não fazem precisa ou ser escondido ou ficar de fora. E o preço maior apareceu na infraestrutura, não no código. TensorFlow e PyTorch não convivem no mesmo ambiente por causa das versões de CUDA, então os requisitos tiveram que ser separados em três arquivos: o que o código importa, os extras opcionais por framework e o congelamento exato do ambiente em que os experimentos rodaram. O ambiente da dissertação não tinha PyTorch instalado, e deixo isso escrito, porque a comparação entre frameworks só é honesta se quem lê sabe qual deles produziu cada número.</p>
+    <div class="versus">
+      <div>
+        <h4>Ganha</h4>
+        <ul>
+          <li>Uma pipeline só, do dado ao relatório, para três frameworks</li>
+          <li>Comparação entre LSTM e Transformer com tudo o mais fixo</li>
+          <li>Previsão ao vivo que não sabe qual framework treinou o modelo</li>
+          <li>A fábrica de trainers diz qual extra instalar quando falta um</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Paga</h4>
+        <ul>
+          <li>Menor denominador comum entre os frameworks</li>
+          <li>Três arquivos de requisitos e dois ambientes CUDA</li>
+          <li>O trainer PyTorch ainda não tem paridade de mini-batch com o Keras</li>
+          <li>Cada recurso novo precisa ser pensado três vezes</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Normalização como estágio da pipeline, não como pré-processamento</h2>
+    <p>Prever preço um passo à frente tem uma característica que domina tudo: a série é fortemente autocorrelacionada. O preço de amanhã é quase o de hoje. Isso significa que a escolha de como normalizar a janela de entrada e o alvo pesa mais do que a arquitetura da rede, e foi em torno disso que o framework foi desenhado. A normalização não é um script que roda antes do treino. É um estágio com contexto próprio, que sabe desfazer a transformação no fim, e que decide inclusive quantos canais o modelo vai receber.</p>
+    <p>Há quatro estratégias. A <strong>global</strong> ajusta um scaler no treino e aplica em tudo. A <strong>local</strong> normaliza janela a janela, com modos para X (z-score, min-max, robusto) e para y (relativo ao último valor, z-score do alvo, min-max do alvo). A <strong>EvoMSN</strong> faz a normalização multi-escala: seleciona as periodicidades dominantes por FFT, fatia a janela por período, normaliza cada fatia por média e desvio, treina regressores que preveem as estatísticas futuras do alvo a partir das estatísticas da entrada, e no fim combina as previsões de cada escala com pesos proporcionais à amplitude de cada frequência na janela. A <strong>EvoMSN-like</strong> dispensa os regressores e usa a última fatia como proxy do futuro.</p>
+    <div class="callout">
+      <span class="label">A ressalva que faço logo de cara</span>
+      <p>O que o Nahas implementa é uma variante <em>offline</em> inspirada no EvoMSN. O método original alterna, durante o treino, atualizações entre o modelo de sequência e o módulo estatístico, numa otimização evolutiva online. Isso não está implementado. Chamar de "EvoMSN" sem essa ressalva seria reivindicar um método que não é o que roda.</p>
+    </div>
+    <p>O que esse desenho compra é a comparação limpa entre normalizações: o mesmo modelo, a mesma janela, o mesmo relatório, e só a estratégia muda. O que ele cobra é que o número de canais da entrada passa a depender da estratégia, porque a normalização local precisa da série do alvo dentro de X para normalizar o alvo pela janela. Essa dependência é real e precisa ser controlada explicitamente, o que me leva à parte da bancada que mais valeu o trabalho.</p>
+
+    <h2>O que a bancada faz sozinha a cada treino</h2>
+    <p>Em previsão de preço, R² e RMSE de nível não dizem se o modelo tem habilidade. Em série autocorrelacionada, <strong>repetir a última observação já dá R² próximo de 1</strong>. Um modelo que faz só isso parece excelente em qualquer métrica de nível, e vai parecer excelente com convicção. Por isso o Nahas não entrega um RMSE solto. Cada treino, sem opção de desligar, roda e grava no relatório:</p>
+    <ul>
+      <li><strong>Persistência</strong> e <strong>média móvel causal</strong>, o piso contra o qual qualquer número precisa ser lido.</li>
+      <li><strong>Saída constante no espaço normalizado</strong>, passada pela mesma inversão do modelo. É a prova de quanto erro a rede alcança sem aprender nada. E o relatório diz explicitamente se essa constante equivale à persistência, porque só equivale no modo relativo ao último valor: no min-max do alvo, o zero é o mínimo da janela; no z-score, a média.</li>
+      <li><strong>Diagnóstico de mimetismo</strong>, que é o teste decisivo: em vez de comparar níveis, compara <em>retornos</em>. Correlação entre retorno previsto e retorno realizado perto de zero significa que todo o RMSE vem do nível e não há sinal. Acurácia direcional e a razão entre o tamanho da aposta prevista e a realizada completam o quadro.</li>
+      <li><strong>Teste de Diebold-Mariano</strong> contra a persistência, com variância de longo prazo por Newey-West e a correção de Harvey-Leybourne-Newbold, porque previsões em janela deslizante são serialmente dependentes e um teste t ingênuo mente.</li>
+      <li><strong>Um bloco de setup</strong> com estratégia de normalização, número de canais, se o alvo está em X, embargo e horizonte, para que a execução seja autodescritiva e ninguém precise adivinhar o que produziu o número.</li>
+    </ul>
+    <div class="callout callout--dark">
+      <span class="label">O que isso muda na prática</span>
+      <p>A pergunta que o relatório responde não é "qual o R²". É "ele bate a persistência com significância, e o retorno previsto se correlaciona com o realizado?". Esses dois números são lidos antes de qualquer outro. Se o framework não responde isso a cada treino, ele vai produzir números bonitos que não significam nada. O custo é um relatório mais longo e alguns segundos a mais por execução. É o melhor negócio do projeto.</p>
+    </div>
+
+    <h2>Busca em grade em várias GPUs, e o que ela esconde</h2>
+    <p>A grade roda em paralelo com um pool de processos. Cada processo isola uma GPU via <code>CUDA_VISIBLE_DEVICES</code> e a enxerga como índice zero, e tem que reconectar ao MySQL por conta própria, porque dois processos herdando a mesma conexão fazem o driver devolver "Packet sequence number wrong". A quantidade de jobs por placa vem de uma estimativa de memória por configuração, uma heurística declarada como tal, com limites de 0,8 a 10 GB e uma margem de segurança. Há timeout de 30 segundos para a inicialização do framework e de duas horas por treino, implementados por sinal do sistema, o que significa que só funcionam em Unix e só na thread principal. Deixo isso listado como limitação em vez de fingir que é portátil.</p>
+    <p>Quando nenhuma combinação cabe nos recursos disponíveis, um detector de impasse explica o que ajustar, em vez de girar em vazio consumindo um núcleo. Cada combinação recebe uma cópia profunda da configuração e um identificador próprio de execução, para que duas combinações nunca escrevam na mesma pasta nem mexam no mesmo dicionário aninhado. E a grade pontua na <strong>validação</strong>, não no teste: escolher hiperparâmetro pela métrica do teste transforma o conjunto de relato em conjunto de seleção, e o teste continua disponível só como relato.</p>
+    <p>O que a grade compra é óbvio: dezenas de configurações numa noite, cada uma com o relatório completo de baselines. O que ela cobra é menos óbvio: cada bug no escalonador se multiplica pelo número de combinações. Uma cópia rasa da configuração, que num treino único não faz diferença, numa grade de cinquenta faz cinquenta execuções mexerem no mesmo objeto. Foi aí que a grade me custou mais noites do que me poupou, e volto a isso adiante.</p>
+
+    <h2>Fine-tuning com rede de segurança, e previsão ao vivo que não improvisa</h2>
+    <p>O fine-tuning faz backup do modelo original antes de tocar nele, compara as métricas de teste antes e depois, e recomenda reverter se alguma métrica crítica piorar mais que 5%. É pouco código e evita a situação clássica de "ajustei o modelo em dados novos e não sei mais se ficou melhor". A previsão ao vivo busca os dados da Binance, monta a janela exatamente como no treino, inclusive a política do canal do alvo lida do config salvo, e produz a previsão com a mesma inversão de normalização. Isso é obrigatório, não é zelo: um canal a mais ou a menos muda o formato da entrada e o modelo simplesmente não aceita. Um config salvo antes de uma chave existir é lido com o valor que o produziu, porque assumir o padrão novo quebraria a inferência de um modelo antigo.</p>
+
+    <h2>Os problemas que a bancada pegou, e o que eles custaram</h2>
+    <p>Aqui está a parte que justifica ter construído uma bancada em vez de um notebook com um modelo. Durante o desenvolvimento, antes de qualquer resultado ir para a dissertação, apareceram problemas de metodologia que nenhum teste unitário pega, porque os números continuam parecendo razoáveis. Todos foram encontrados e corrigidos a tempo. O preço não foi em resultado publicado. Foi em tempo: <strong>semanas de execuções da grade, em várias GPUs, que tiveram que ser descartadas e refeitas do zero com os padrões corrigidos</strong>, porque um número produzido pelo comportamento antigo não é comparável com um produzido pelo novo. Conto os três maiores, porque cada um virou uma peça do framework.</p>
+    <h3>O número bonito que era persistência</h3>
+    <p>Os primeiros resultados com normalização local tinham R² de 0,999 e um RMSE muito menor que o da normalização global. Era o resultado que a gente quer ver, e era o resultado que deveria ter acendido a luz amarela. O mecanismo, quando fui procurar, era exato: no modo de alvo relativo ao último valor, a rede prevê um número no espaço normalizado que depois é multiplicado pelo último preço observado. <strong>Prever zero nesse espaço é, identicamente, a persistência.</strong> Diferença máxima verificada em teste: 0,0. A rede não precisava aprender nada; bastava emitir uma constante. Não havia vazamento de índice no janelamento nem no scaler global; o efeito era real, só não era habilidade. Foi isso que fez o módulo de baselines e o diagnóstico de mimetismo virarem obrigatórios em todo treino. Depois dele, uma execução inteira de busca em grade foi para o lixo, porque nenhuma daquelas métricas dizia o que eu precisava saber.</p>
+    <h3>Um canal a mais em um braço só</h3>
+    <p>O segundo explicava por que a normalização local parecia tão melhor que a global: os dois braços não recebiam a mesma entrada. O braço local tinha o fechamento das 96 barras anteriores como canal extra, por necessidade da normalização, e o global não. E é exatamente esse canal que torna a persistência trivialmente expressável. A diferença medida misturava o efeito da normalização com o efeito de ter o fechamento como feature. A correção foi uma chave de três valores, <code>include_target_channel</code>: <em>equalized</em>, que inclui o canal em todas as estratégias e é o padrão; <em>never</em>, para isolar o efeito da normalização; e <em>legacy</em>, que mantém o comportamento antigo atrás de uma chave, para medir quanto ele distorcia. Com ela deu para medir em vez de discutir:</p>
+    <table>
+      <thead><tr><th>Braço</th><th>Normalização</th><th>Canal do alvo</th><th>O que mede</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>Global</td><td>Não (4 canais)</td><td>O braço global como era</td></tr>
+        <tr><td>B</td><td>Global</td><td>Sim (5 canais)</td><td>Quanto da distância fecha só por dar o fechamento ao global</td></tr>
+        <tr><td>C</td><td>Local</td><td>Sim (5 canais)</td><td>O braço local como era</td></tr>
+        <tr><td>D</td><td>Local</td><td>Não (4 canais)</td><td>O local sem a feature que facilita a persistência</td></tr>
+      </tbody>
+    </table>
+    <p>Primeira medição, em BTCUSDT, uma semente, dez épocas: dar o fechamento ao braço global reduziu o erro dele em <strong>34%</strong> (RMSE de 4.701 para 3.100). Tirá-lo do braço local piorou <strong>17%</strong> (343 para 401). Com features iguais dos dois lados, a vantagem da normalização por janela permaneceu: 9,0 vezes com cinco canais e 11,7 vezes com quatro. Ou seja, o efeito é real e grande, e sem a matriz eu o teria superestimado sem saber quanto. A mesma varredura achou o fine-tuning normalizando o fechamento pela janela de <em>abertura</em>, por usar o índice zero como canal do alvo. Nenhum teste pegava, porque os números continuavam razoáveis. É a assinatura desse tipo de problema.</p>
+    <h3>Quando LSTM e Transformer previam a mesma coisa</h3>
+    <p>Havia um sintoma anotado e sem explicação: sob normalização multi-escala com horizonte de um passo, LSTM e Transformer produziam previsões <em>idênticas</em>. Duas arquiteturas diferentes dando o mesmo número não é robustez; é um problema a montante que torna a rede irrelevante. O mecanismo é aritmético. Com horizonte de um passo, a fatia do alvo é preenchida por replicação do único valor que existe, vira um vetor constante, e <strong>o desvio padrão é exatamente zero</strong>. O alvo que o backbone vê é identicamente zero, o regressor que prevê o desvio futuro é ajustado sobre zeros e devolve algo da ordem de 10⁻¹⁴, e na desnormalização a saída da rede é multiplicada por esse quase-zero e desaparece. A previsão vira a média predita pura. Nenhuma das duas redes estava sendo usada.</p>
+    <table>
+      <thead><tr><th>Medido com H = 1, L = 96, períodos [96, 48, 24]</th><th>Comportamento antigo</th><th>Corrigido</th></tr></thead>
+      <tbody>
+        <tr><td>Desvio padrão do alvo do backbone</td><td>1,3 × 10⁻⁶</td><td>1,26</td></tr>
+        <tr><td>Desvio futuro predito (mediana)</td><td>5,1 × 10⁻¹⁵</td><td>2,19</td></tr>
+        <tr><td>Efeito de somar 1 à saída da rede</td><td>1,0 × 10⁻⁸</td><td>2,63</td></tr>
+        <tr><td>Desvio padrão do alvo real</td><td>5,19</td><td>5,19</td></tr>
+      </tbody>
+    </table>
+    <p>A correção se afasta do método original, e deixo isso explícito: Qin e colegas pressupõem horizonte maior ou igual ao período. Nas escalas em que o horizonte é menor, a política <code>window_stats</code> usa as estatísticas da última fatia da janela do alvo como referência. São causais, bem definidas e computáveis na inferência. O modo <code>error</code> levanta exceção, para que ninguém rode um regime inválido em silêncio. Com horizonte maior que todos os períodos, as políticas coincidem exatamente. Esse foi o problema que mais execuções levou consigo, porque toda a grade da normalização multi-escala com horizonte unitário era inválida e teve que ser refeita.</p>
+    <div class="callout">
+      <span class="label">O trade-off que a correção cria</span>
+      <p>Sob horizonte unitário com todas as escalas degeneradas, a EvoMSN e a EvoMSN-like viram a mesma coisa, porque os preditores auxiliares, única diferença entre as duas, nunca são chamados. Isso está documentado e coberto por teste. A consequência honesta é que a comparação entre as duas variantes só faz sentido com horizonte multi-passo.</p>
+    </div>
+    <h3>E os pequenos, que são os que passam</h3>
+    <ul>
+      <li><strong>Divisão temporal depois do janelamento:</strong> treino e validação compartilhavam até 95 barras. Hoje há um <em>embargo</em> entre as partições, com padrão igual ao tamanho da janela mais o horizonte menos um.</li>
+      <li><strong>Indicadores técnicos preenchendo ausentes com a média da série inteira</strong>, antes da divisão. Hoje preço e volume usam preenchimento para a frente, e um teste de causalidade verifica que alterar a metade final da série não altera a metade inicial.</li>
+      <li><strong>FFT dominada pelo volume:</strong> a média de amplitudes entre canais sem padronizar reflete o canal de maior escala. Hoje cada canal é padronizado antes da transformada.</li>
+      <li><strong>Grade pontuando no teste.</strong> Hoje pontua na validação, que antes nem era medida.</li>
+    </ul>
+
+    <h2>Reprodutibilidade como contrato, não como intenção</h2>
+    <p>Cada correção acima mudou o comportamento padrão do código, e todas as execuções que foram para a dissertação saíram dos padrões corrigidos. Mesmo assim, carreguei o comportamento antigo atrás de uma chave em <strong>todas</strong> as correções: canal do alvo, embargo, política de horizonte curto, escala dos períodos. Por três motivos. Primeiro, para poder medir o efeito de cada correção lado a lado, como na matriz acima, em vez de confiar na minha explicação. Segundo, para que configs e modelos salvos antes de uma chave existir continuem carregáveis, com o valor que os produziu. Terceiro, para que as execuções antigas, descartadas, continuem reproduzíveis se alguém quiser entender por que foram descartadas. Deixo documentada a configuração exata do modo antigo e as cinco sementes da seção de repetição, com o aviso de que os padrões atuais produzem números diferentes, porque os padrões são as versões corrigidas.</p>
+    <div class="callout callout--dark">
+      <span class="label">O custo, dito de frente</span>
+      <p>Carregar caminhos antigos é complexidade permanente. Cada chave de três valores é um ramo a mais para testar e um lugar a mais para errar. Paguei esse custo porque a alternativa era um repositório em que ninguém consegue verificar por que um número mudou. A regra é que o modo antigo existe para comparar e para carregar o que já foi salvo, nunca para rodar coisa nova, e a mensagem de aviso aparece toda vez que ele é ativado.</p>
+    </div>
+    <p>Isso é sustentado por 34 testes e por integração contínua que roda lint e testes sem precisar de banco. Dois deles protegem decisões em vez de código: um garante que a classe antiga de grid, que ignorava o tamanho da janela e maximizava o erro quando a métrica não se chamava "loss", não volte; outro garante que a fábrica de trainers importe módulos por <code>importlib</code> e nunca por string executada.</p>
+
+    <h2>O que ainda falta</h2>
+    <ul>
+      <li><strong>Partição única.</strong> O protocolo usa uma retenção temporal fixa, sem validação progressiva. Para série financeira essa é a limitação mais séria que eu declaro, porque um único corte no tempo pode cair num regime de mercado que não representa os outros.</li>
+      <li><strong>O trainer PyTorch faz uma atualização por época sobre o lote inteiro</strong>, enquanto o Keras usa mini-batches. É uma assimetria que precisa ser corrigida antes de qualquer comparação entre frameworks, e é por isso que os experimentos não a fizeram.</li>
+      <li><strong>A matriz do confundimento tem uma semente e dez épocas.</strong> É uma primeira medição, e está rotulada assim. Fechar a questão exige as cinco sementes e o treino completo.</li>
+      <li><strong>A variante online do EvoMSN</strong> continua não implementada. O nome no repositório carrega a ressalva, mas o método de referência é outro.</li>
+      <li><strong>Timeouts por sinal</strong> prendem a grade ao Unix e à thread principal. Uma versão por processo filho com limite de tempo resolveria e tornaria portátil.</li>
+    </ul>
+    <div class="callout">
+      <span class="label">O que eu faria desde o primeiro dia</span>
+      <p>Escreveria o módulo de baselines antes do primeiro modelo, e a matriz de confundimento antes da primeira comparação entre normalizações. Os dois custam uma tarde. O que eles teriam evitado custou semanas de GPU: execuções inteiras da grade descartadas e refeitas. A bancada acabou pagando por si mesma justamente porque pegou tudo isso antes de qualquer número sair. Tê-la completa antes dos experimentos teria sido mais barato ainda.</p>
+    </div>
+
+    <h2>Resumo da conversa</h2>
+    <ul>
+      <li>O Nahas é uma bancada: LSTM e Transformer em três frameworks atrás de uma interface só, quatro normalizações como estágio da pipeline, grid multi-GPU, fine-tuning com backup, previsão ao vivo. O ganho é comparar com tudo o mais fixo; o custo é o menor denominador comum e dois ambientes CUDA.</li>
+      <li>Cada treino responde sozinho se o modelo bate a persistência com significância e se o retorno previsto se correlaciona com o realizado. Em preço, esses dois números valem mais que qualquer R².</li>
+      <li>Durante o desenvolvimento a bancada pegou três problemas de metodologia que nenhum teste unitário pega: persistência disfarçada, um canal a mais num braço só, e uma normalização que anulava a rede. Todos corrigidos antes de qualquer resultado sair; o preço foram semanas de execuções descartadas e refeitas.</li>
+      <li>O comportamento antigo ficou atrás de chaves para medir cada correção e carregar o que já foi salvo, nunca para rodar coisa nova. 34 testes e CI garantem que nada disso volte.</li>
+      <li>Ainda falta validação progressiva, paridade de mini-batch no PyTorch e a variante online do EvoMSN.</li>
+    </ul>
+
+  </article>
+  <section class="related">
+    <div class="related__inner">
+      <h2>Leia também</h2>
+      <div class="grid">
+        <a class="post-card" href="dica_clean_architeture.html" data-slug="dica_clean_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="8" stroke="#111827" stroke-width="2" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#bb244e"/></svg></span>
+          <h3>Clean Architecture: onde ela paga a conta e onde só adiciona pasta</h3>
+          <p>Camadas não são o objetivo. Uma conversa sobre quando o seguro da Clean Architecture vale o prêmio e quando você só está pagando burocracia.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dica_hexagonal_architeture.html" data-slug="dica_hexagonal_architeture" data-tags="Arquitetura|Backend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><polygon points="18,5 29.3,11.5 29.3,24.5 18,31 6.7,24.5 6.7,11.5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="#bb244e"/><path d="M18 22v5M14 18H9M22 18h5" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Ports &amp; Adapters: o core é cego, e isso tem um preço</h3>
+          <p>O domínio não sabe quem o chama nem de onde vêm os dados. O que você paga por essa cegueira e quais portas vazam de qualquer jeito.</p>
+          <div class="meta"><span class="tag tag--accent">Arquitetura</span><span class="tag">Backend</span><span class="dot"></span><span>9 min de leitura</span></div>
+        </a>
+<a class="post-card" href="LLM_not_resolve.html" data-slug="LLM_not_resolve" data-tags="IA aplicada|Arquitetura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="9" width="24" height="18" rx="5" stroke="#111827" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#bb244e"/><circle cx="22" cy="18" r="2" fill="#bb244e"/><path d="M13 23h10" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A LLM não resolve o seu problema. E tudo bem.</h3>
+          <p>O que um modelo de linguagem realmente faz, o que custa e o que você perde em previsibilidade. Com um caso real em que a resposta foi &quot;não&quot;.</p>
+          <div class="meta"><span class="tag tag--accent">IA aplicada</span><span class="tag">Arquitetura</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="prompt2drawio.html" data-slug="prompt2drawio" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="21" y="6" width="10" height="7" rx="1.5" stroke="#111827" stroke-width="2"/><rect x="13" y="23" width="10" height="7" rx="1.5" fill="#bb244e"/><path d="M10 13v5h16v-5M18 18v5" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Prompt2Drawio: o modelo escreve o JSON, o código desenha o diagrama nativo do draw.io</h3>
+          <p>Nem Mermaid, nem XML pelo modelo. Uma especificação JSON pequena, estilos colhidos de dentro do draw.io, layout por camadas determinístico, e o que sobra para o modelo errar quando só o conteúdo é dele.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>14 min de leitura</span></div>
+        </a>
+<a class="post-card" href="attention.html" data-slug="attention" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M4 18c4-7 9-10 14-10s10 3 14 10c-4 7-9 10-14 10S8 25 4 18z" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="5" stroke="#111827" stroke-width="2"/><circle cx="18" cy="18" r="2" fill="#bb244e"/></svg></span>
+          <h3>Atenção: o que a fórmula não conta sobre custo</h3>
+          <p>Todo mundo conhece a fórmula. Poucos olham o que ela faz com memória, latência e custo quando o contexto cresce. As decisões que vêm depois.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>10 min de leitura</span></div>
+        </a>
+<a class="post-card" href="spectro.html" data-slug="spectro" data-tags="Áudio|Processamento de sinais|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="22" rx="2.5" stroke="#111827" stroke-width="2"/><rect x="8" y="18" width="3" height="7" fill="#bb244e"/><rect x="12" y="12" width="3" height="13" fill="#bb244e" opacity=".8"/><rect x="16" y="9" width="3" height="16" fill="#bb244e"/><rect x="20" y="14" width="3" height="11" fill="#bb244e" opacity=".7"/><rect x="24" y="11" width="3" height="14" fill="#bb244e" opacity=".55"/><path d="M11 31h14" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Spectro: um espectrograma inteiro no navegador, sem dependências, e as contas que cada parâmetro esconde</h3>
+          <p>De um Float32Array a um canvas, sem dependências. A janela BH7 como aposta, o pico global como referência, Mel como remapeamento de exibição, a FFT própria como limite real, e o que entra na próxima versão maior.</p>
+          <div class="meta"><span class="tag tag--accent">Áudio</span><span class="tag">Processamento de sinais</span><span class="tag">Frontend</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="pomodoro.html" data-slug="pomodoro" data-tags="Produtividade|Frontend">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="20" r="11" stroke="#111827" stroke-width="2"/><path d="M18 20V13" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M18 20l5 3" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M14 5h8M18 5v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="20" r="1.8" fill="#bb244e"/></svg></span>
+          <h3>Pomodoro além do 25/5: o que a técnica pede de verdade, onde ela não serve, e o timer que fiz para rodá-la</h3>
+          <p>Atenção contínua é o recurso escasso. A técnica Pomodoro inteira, não só o timer, onde ela não serve e o que eu ajusto, e o PomoFocus: uma página sem servidor que decide a pausa por você e registra o dia.</p>
+          <div class="meta"><span class="tag tag--accent">Produtividade</span><span class="tag">Frontend</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="sns_security.html" data-slug="sns_security" data-tags="Segurança|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="7" y="15" width="22" height="15" rx="3" stroke="#111827" stroke-width="2"/><path d="M12 15v-4a6 6 0 0 1 12 0v4" stroke="#111827" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="22" r="2.4" fill="#bb244e"/><path d="M18 24v3" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+          <h3>SNS Security: o notebook foi para a assistência, e os segredos ficaram cifrados</h3>
+          <p>Cifrar os .env antes de entregar o notebook virou uma ferramenta: núcleo no age, frase que nunca entra no Python, sessão em RAM que se destrói, o arquivo tratado como adversário, e a lista honesta do que não protege.</p>
+          <div class="meta"><span class="tag tag--accent">Segurança</span><span class="tag">Sistemas</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="trello_agentic.html" data-slug="trello_agentic" data-tags="Agentes|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="14" rx="1.5" fill="#bb244e"/><rect x="19" y="10" width="8" height="8" rx="1.5" stroke="#111827" stroke-width="1.8"/><path d="M21 14l1.5 1.5L25 12" stroke="#111827" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Trello Agentic: um agente rodando na sua máquina, com Ollama, LangGraph e cinco ferramentas</h3>
+          <p>Uma frase vira um card completo no Trello, com o modelo rodando local pelo Ollama. A docstring é a interface, o segredo nunca entra no contexto, e o que precisa ser exato fica no código. Onde o modelo tropeça e o que vem a seguir.</p>
+          <div class="meta"><span class="tag tag--accent">Agentes</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="stratosphere.html" data-slug="stratosphere" data-tags="Visão computacional|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M6 20a12 12 0 0 1 24 0" stroke="#111827" stroke-width="2"/><path d="M11 20a7 7 0 0 1 14 0" stroke="#111827" stroke-width="2" opacity=".5"/><rect x="14" y="16" width="8" height="8" rx="2" transform="rotate(45 18 20)" fill="#bb244e"/></svg></span>
+          <h3>Stratosphere: por que separar &quot;onde&quot; de &quot;quem&quot; funciona, e o que apodrece quando o banco é mal cuidado</h3>
+          <p>Detector agnóstico mais busca vetorial, sem retreino. As decisões que fazem a pipeline acertar, os números por trás de cada uma, e como o banco de referências se deteriora em silêncio.</p>
+          <div class="meta"><span class="tag tag--accent">Visão computacional</span><span class="tag">IA aplicada</span><span class="dot"></span><span>22 min de leitura</span></div>
+        </a>
+<a class="post-card" href="photonprotocol.html" data-slug="photonprotocol" data-tags="Protocolos|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="11" cy="18" r="5" fill="#bb244e"/><path d="M18 11a9 9 0 0 1 0 14M22 7a14 14 0 0 1 0 22" stroke="#111827" stroke-width="2" stroke-linecap="round"/><rect x="27" y="13" width="5" height="10" rx="1.5" stroke="#111827" stroke-width="2"/></svg></span>
+          <h3>PhotonProtocol: um arquivo atravessando o ar como luz, e o que a câmera real ensinou ao modelo</h3>
+          <p>Um canal sem volta, um simulador gentil demais, a decisão de uma linha que impediu qualquer transferência real e o formato denso que nasceu de ouvir o telefone.</p>
+          <div class="meta"><span class="tag tag--accent">Protocolos</span><span class="tag">Sistemas</span><span class="dot"></span><span>20 min de leitura</span></div>
+        </a>
+<a class="post-card" href="dataset_curadoria.html" data-slug="dataset_curadoria" data-tags="Dados|Visão computacional">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="7" width="11" height="11" rx="2" stroke="#111827" stroke-width="2"/><rect x="5" y="22" width="11" height="9" rx="2" stroke="#111827" stroke-width="2"/><rect x="20" y="22" width="11" height="9" rx="2" fill="#bb244e"/><path d="M8 12.5h5M8 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M23 12.5h5M23 15h3" stroke="#111827" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg></span>
+          <h3>O dataset que cresce torto: deduplicar, podar e balancear sem abrir pasta por pasta</h3>
+          <p>Classes que engordam tortas, pastas cheias de cópias e quase-cópias. Três problemas que parecem um só, uma camada de ferramenta para cada, e a decisão que nenhum limiar toma por você.</p>
+          <div class="meta"><span class="tag tag--accent">Dados</span><span class="tag">Visão computacional</span><span class="dot"></span><span>17 min de leitura</span></div>
+        </a>
+<a class="post-card" href="direcao_recusa.html" data-slug="direcao_recusa" data-tags="Deep Learning|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#111827" stroke-width="2" opacity=".5"/><path d="M8 26 L26 10" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 10h6v6" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="14" r="1.6" fill="#111827"/><circle cx="23" cy="24" r="1.6" fill="#111827"/><circle cx="14" cy="23" r="1.6" fill="#111827"/></svg></span>
+          <h3>A recusa mora numa direção: o que a geometria do residual stream ensina sobre alinhamento</h3>
+          <p>Recusar uma instrução não está espalhado por bilhões de pesos. Está numa direção do residual stream. O que isso revela sobre a fragilidade do alinhamento, e o que muda para quem opera modelos.</p>
+          <div class="meta"><span class="tag tag--accent">Deep Learning</span><span class="tag">IA aplicada</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ia_divida_tecnica.html" data-slug="ia_divida_tecnica" data-tags="Engenharia|IA aplicada">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M12 11 6 18l6 7M24 11l6 7-6 7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8 16 28" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/><circle cx="27" cy="9" r="5" fill="#bb244e"/><path d="M27 6.5v3M27 11.6v.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>IA, dívida técnica e a ilusão de que gerar código é resolver problema</h3>
+          <p>Quatro registros por segundo num código que funcionava. A correção não foi trocar de linguagem nem pedir outro prompt. Foi complexidade algorítmica, e sobre o que a IA acelera em quem não a tem.</p>
+          <div class="meta"><span class="tag tag--accent">Engenharia</span><span class="tag">IA aplicada</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="wavlink_sm768.html" data-slug="wavlink_sm768" data-tags="Sistemas|Linux">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="7" width="26" height="17" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M13 30h10M18 24v6" stroke="#111827" stroke-width="2" stroke-linecap="round"/><path d="M11 18l3-5 3 7 3-9 3 7h2" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Tela cinza, monitor que apaga e uma linha de C: consertando um driver USB de vídeo sem tocar no binário fechado</h3>
+          <p>Instalador que aborta, tela cinza no boot, monitor que apaga. Três causas na camada aberta, nenhuma no firmware. Como se acha a camada certa para mexer e por que tudo precisa ter volta.</p>
+          <div class="meta"><span class="tag tag--accent">Sistemas</span><span class="tag">Linux</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ttft_tpot.html" data-slug="ttft_tpot" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M5 26h26" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".4"/><rect x="7" y="8" width="4" height="18" rx="1.5" fill="#bb244e"/><rect x="14" y="20" width="4" height="6" rx="1.5" fill="#111827"/><rect x="21" y="21" width="4" height="5" rx="1.5" fill="#111827"/><rect x="28" y="22" width="3" height="4" rx="1.5" fill="#111827"/></svg></span>
+          <h3>TTFT e TPOT: as duas físicas que governam a latência de um LLM</h3>
+          <p>Prefill é cálculo, decode é leitura de memória. 12.968 tokens por segundo de um lado, 95 do outro, no mesmo silício. As alavancas de cada fase e o trade-off de que ninguém escapa.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="kv_cache.html" data-slug="kv_cache" data-tags="Inferência|Infraestrutura">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="6" width="26" height="24" rx="3" stroke="#111827" stroke-width="2"/><rect x="9" y="10" width="8" height="5" rx="1" fill="#bb244e"/><rect x="19" y="10" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="9" y="17" width="8" height="5" rx="1" fill="#bb244e" opacity=".55"/><rect x="19" y="17" width="8" height="5" rx="1" stroke="#111827" stroke-width="1.5" opacity=".5"/><rect x="9" y="24" width="18" height="2.5" rx="1" fill="#111827" opacity=".4"/></svg></span>
+          <h3>Janela de contexto é VRAM: a conta do KV cache que derruba servidores</h3>
+          <p>Dimensionar pelo peso do modelo é o erro mais comum. A fórmula do KV cache, a tabela que explica por que GQA existe, o que as preempções denunciam, e a correção sobre FlashAttention.</p>
+          <div class="meta"><span class="tag tag--accent">Inferência</span><span class="tag">Infraestrutura</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="quantizacao_tensor_cores.html" data-slug="quantizacao_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="8" y="8" width="20" height="20" rx="3" stroke="#111827" stroke-width="2"/><rect x="13" y="13" width="10" height="10" rx="1.5" fill="#bb244e"/><path d="M12 4v4M18 4v4M24 4v4M12 28v4M18 28v4M24 28v4M4 12h4M4 18h4M4 24h4M28 12h4M28 18h4M28 24h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <h3>VRAM é o estacionamento, Tensor Cores são o motor: por que placa antiga cheia de memória não roda formato novo</h3>
+          <p>Gigabytes carregam o modelo; Tensor Cores calculam. O que cada geração entende nativamente, o que acontece quando o formato não é suportado, e a regra para escolher entre custo por GB e geração.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="cpu_cuda_tensor_cores.html" data-slug="cpu_cuda_tensor_cores" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="5" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="8.5" y="12" width="4" height="4" rx="1" fill="#111827"/><rect x="20" y="8" width="11" height="20" rx="2" stroke="#111827" stroke-width="2"/><rect x="22" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="10.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="14" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="17.5" width="2.2" height="2.2" fill="#bb244e"/><rect x="22" y="21" width="2.2" height="2.2" fill="#bb244e"/><rect x="25.4" y="21" width="2.2" height="2.2" fill="#bb244e"/></svg></span>
+          <h3>Por que uma CPU de 5 GHz passa vergonha em IA perto de uma GPU intermediária</h3>
+          <p>Poucos núcleos cirúrgicos contra milhares de operários e blocos dedicados a multiplicar matrizes. Onde a CPU perde, onde ela ainda serve, e por que a banda de memória decide antes do clock.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="hierarquia_banda.html" data-slug="hierarquia_banda" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="6" rx="2" fill="#bb244e"/><rect x="6" y="15" width="24" height="6" rx="2" fill="#bb244e" opacity=".55"/><rect x="6" y="24" width="24" height="6" rx="2" stroke="#111827" stroke-width="2"/><path d="M18 12v3M18 21v3" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>A hierarquia de largura de banda: VRAM, RAM, NVMe, PCIe e o que acontece quando o modelo transborda</h3>
+          <p>360 GB/s, 60 GB/s, 7 GB/s, 30 GB/s: a VRAM, a RAM, o NVMe e o PCIe. A conta de Amdahl que explica o transbordo, e a escolha entre paralelismo de tensor e de pipeline em duas placas sem NVLink.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>13 min de leitura</span></div>
+        </a>
+<a class="post-card" href="termodinamica_inferencia.html" data-slug="termodinamica_inferencia" data-tags="Infraestrutura|Sistemas">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><path d="M15 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" stroke="#111827" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="25" r="3.2" fill="#bb244e"/><path d="M18 22v-9" stroke="#bb244e" stroke-width="2.4" stroke-linecap="round"/><path d="M25 9h4M25 13h4M25 17h4" stroke="#111827" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>
+          <h3>Termodinâmica da inferência: por que o servidor perde metade da velocidade em vinte minutos sem mudar uma vírgula</h3>
+          <p>Thermal throttling, placas que respiram o ar quente da vizinha, curvas de ventoinha de desktop num servidor 24/7. Os números do nosso painel sob carga, e por que limitar potência quase não custa em decode.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Sistemas</span><span class="dot"></span><span>12 min de leitura</span></div>
+        </a>
+<a class="post-card" href="ollama_para_vllm.html" data-slug="ollama_para_vllm" data-tags="Infraestrutura|Inferência">
+          <span class="icon"><svg viewBox="0 0 36 36" fill="none"><rect x="4" y="7" width="28" height="18" rx="2.5" stroke="#111827" stroke-width="2"/><path d="M8 20l5-6 4 4 4-7 4 5 3-3" stroke="#bb244e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30h12" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Do Ollama ao vLLM: servindo um time inteiro em duas RTX 3060, com o painel aberto</h3>
+          <p>Por que o Ollama não bastou para o time, o que o vLLM mudou, e a leitura do painel real: 88% de VRAM, 97% de cache hit, zero preempções, 12.968 tokens por segundo lendo e 95 gerando.</p>
+          <div class="meta"><span class="tag tag--accent">Infraestrutura</span><span class="tag">Inferência</span><span class="dot"></span><span>15 min de leitura</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+  <footer class="site">
+    <div class="inner">
+      <span>&copy; <span class="ano"></span> Igor Nascimento. Todos os direitos reservados.</span>
+      <a href="https://www.sophialabs.com.br" target="_blank" rel="noopener">Desenvolvido por SophiaLabs</a>
+    </div>
+  </footer>
+  <script>document.querySelectorAll('.ano').forEach(function(e){e.textContent=new Date().getFullYear();});</script>
+</body>
+</html>

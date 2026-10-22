@@ -438,3 +438,11 @@ footer.site a:hover{ color: #fff; }
 .article table.tools td:nth-child(2), .article table.tools th:nth-child(2){ width: 24%; }
 .article table.tools code{ white-space: normal; word-break: break-word; }
 @media (max-width: 640px){ .article table.tools{ table-layout: auto; min-width: 640px; } }
+
+.article td code{ white-space: normal; overflow-wrap: break-word; }
+.article table.cols3{ table-layout: fixed; }
+.article table.cols3 th:first-child, .article table.cols3 td:first-child{ width: 30%; }
+.article table.cols3 th:nth-child(2), .article table.cols3 td:nth-child(2){ width: 38%; }
+.article table.nowrap1 td:first-child, .article table.nowrap1 td:first-child code{ white-space: nowrap; }
+.article table.cols3 td:first-child{ white-space: normal; }
+@media (max-width: 640px){ .article table.cols3{ min-width: 560px; } .article td code{ overflow-wrap: anywhere; } }
