@@ -239,7 +239,8 @@ body{
 .sec--dark .btn:hover img{ filter: none; }
 .sec__actions{ display: flex; justify-content: center; margin-top: 44px; }
 .btn--toggle{ padding: 12px 22px; font-size: 14px; }
-.sec:not(.is-expanded) .certificate--extra{ display: none; }
+.sec:not(.is-expanded) .certificate--extra,
+.sec:not(.is-expanded) .jornada--extra{ display: none; }
 
 
 /* ---- Open Source: grade centralizada (o card sobrando fica no meio) ---- */
